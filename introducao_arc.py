@@ -1,8 +1,8 @@
 # pip install arcade no terminal
 import arcade
 
-ALTURA = 800
-LARGURA = 600
+ALTURA = 600
+LARGURA = 800
 TITULO = "Meu Joguinho"
 
 class Player(arcade.Sprite):
@@ -18,10 +18,11 @@ class Player(arcade.Sprite):
         self.center_y += self.change_y
 
 
-        if self.center_x > 0:
+        if self.change_x > 0:
            self.textura_direita = self.textura_direita
-        elif self.center_x < 0:
+        elif self.change_x < 0:
             self.textura_esquerda = self.textura_esquerda
+        
     
            
 
@@ -32,13 +33,28 @@ class Moeda(arcade.Sprite):
         
 
     def update(self,delta_time):
-       self.center_x += self.change_x
-       self.center_y += self.change_y
+     
+        self.center_x += self.change_x
+        self.center_y += self.change_y
+
+        if self.right > LARGURA:
+            self.change_x = 0
+        if self.left < 0:
+            self.change_x = 0
+
+        if self.top > ALTURA:
+            self.change_y = 0
+
+        if self.bottom < 0:
+            self.change_y = 0
+
 
 
 class MeuJogo(arcade.Window):
     def __init__(self):
         super().__init__(800,600,"Meu Joguinho")
+        self.movimento = 3
+        
 
 
         arcade.set_background_color((226, 237, 5))
@@ -52,6 +68,8 @@ class MeuJogo(arcade.Window):
         self.moeda_jogo = Moeda()
         self.moeda_jogo.center_x = 280
         self.moeda_jogo.center_y = 100
+        self.moeda_jogo.change_x = self.movimento
+        self.moeda_jogo.change_y= self.movimento
 
         self.sprite_moeda_jogo = arcade.SpriteList()
         self.sprite_moeda_jogo.append(self.moeda_jogo)
@@ -60,7 +78,17 @@ class MeuJogo(arcade.Window):
         self.clear()
         self.sprite_jogador.draw()
         self.sprite_moeda_jogo.draw()
+    
+
+    def on_update(self, delta_time):
+        self.sprite_jogador.update(delta_time)
+        self.sprite_moeda_jogo.update(delta_time)
+
         
+
+        
+
+
 
         
 
