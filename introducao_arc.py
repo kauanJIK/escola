@@ -8,7 +8,7 @@ TITULO = "Meu Joguinho"
 class Player(arcade.Sprite):
 
     def __init__(self):
-        super().__init__("luffy.png",scale=0.3)
+        super().__init__("luffy.png",scale=0.1)
         self.textura_direita = arcade.load_texture("luffy.png")
         self.textura_esquerda = arcade.load_texture("Luffy2.png")
         
@@ -23,6 +23,21 @@ class Player(arcade.Sprite):
         elif self.change_x < 0:
             self.textura_esquerda = self.textura_esquerda
         
+        if self.right  > LARGURA:
+            self.change_x = 0
+            self.right = LARGURA
+
+        if self.left < 0:
+            self.change_x = 0
+            self.left =0
+
+        if self.top > ALTURA:
+            self.change_y = 0
+            self.top = ALTURA
+        
+        if self.bottom < 0:
+            self.change_y = 0
+            self.bottom = 0 
     
            
 
@@ -37,16 +52,15 @@ class Moeda(arcade.Sprite):
         self.center_x += self.change_x
         self.center_y += self.change_y
 
-        if self.right > LARGURA:
-            self.change_x = 0
-        if self.left < 0:
-            self.change_x = 0
+        if self.right > LARGURA or self.left < 0:
+            self.change_x *= -1
+        
 
-        if self.top > ALTURA:
-            self.change_y = 0
+        if self.top > ALTURA or  self.bottom < 0:
+            self.change_y *= -1
 
-        if self.bottom < 0:
-            self.change_y = 0
+        elif self.bottom < 0:
+            self.change_y *= -1
 
 
 
@@ -59,8 +73,8 @@ class MeuJogo(arcade.Window):
 
         arcade.set_background_color((226, 237, 5))
         self.jogador = Player()
-        self.jogador.center_x = 400
-        self.jogador.center_y = 320
+        self.jogador.center_x = 0
+        self.jogador.center_y = 0
 
         self.sprite_jogador = arcade.SpriteList()
         self.sprite_jogador.append(self.jogador)
@@ -83,16 +97,33 @@ class MeuJogo(arcade.Window):
     def on_update(self, delta_time):
         self.sprite_jogador.update(delta_time)
         self.sprite_moeda_jogo.update(delta_time)
+    
+    def on_key_press(self,key, modifiers):
+        if key == arcade.key.RIGHT:
+            self.jogador.change_x += self.movimento
 
+        elif key == arcade.key.LEFT:
+            self.jogador.change_x -= self.movimento
+
+
+        elif key == arcade.key.UP:
+            self.jogador.change_y += self.movimento
         
 
-        
+        elif key == arcade.key.DOWN:
+            self.jogador.change_y -= self.movimento
+
+        elif key == arcade.key.ESCAPE:
+            arcade.close_window()
+
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.RIGHT or key == arcade.key.LEFT:
+            self.jogador.change_x = 0
 
 
-
-        
-
-
+        elif key == arcade.key.UP or key == arcade.key.DOWN:
+            self.jogador.change_y = 0
+       
 
 
 def executar():
