@@ -1,4 +1,5 @@
 # pip install arcade no terminal
+import random
 import arcade
 
 ALTURA = 600
@@ -62,6 +63,8 @@ class Moeda(arcade.Sprite):
         elif self.bottom < 0:
             self.change_y *= -1
 
+    
+
 
 
 class MeuJogo(arcade.Window):
@@ -73,20 +76,55 @@ class MeuJogo(arcade.Window):
 
         arcade.set_background_color((226, 237, 5))
         self.jogador = Player()
-        self.jogador.center_x = 0
-        self.jogador.center_y = 0
+        self.jogador.left = 0
+        self.jogador.bottom = 0
 
         self.sprite_jogador = arcade.SpriteList()
         self.sprite_jogador.append(self.jogador)
 
-        self.moeda_jogo = Moeda()
-        self.moeda_jogo.center_x = 280
-        self.moeda_jogo.center_y = 100
-        self.moeda_jogo.change_x = self.movimento
-        self.moeda_jogo.change_y= self.movimento
+
 
         self.sprite_moeda_jogo = arcade.SpriteList()
-        self.sprite_moeda_jogo.append(self.moeda_jogo)
+        
+       
+        for i in range(250):
+            self.moeda_simples =Moeda()
+            self.moeda_simples.center_x = random.randint(50, LARGURA -50)
+            self.moeda_simples.center_y = random.randint(50, ALTURA -50)
+            
+            self.moeda_simples.change_x = self.movimento
+            self.moeda_simples.change_y= self.movimento
+            self.sprite_moeda_jogo.append(self.moeda_simples)
+
+       
+
+
+
+
+
+        # self.moeda_jogo = Moeda()
+        # self.moeda_jogo.center_x = 280
+        # self.moeda_jogo.center_y = 100
+        # self.moeda_jogo.change_x = self.movimento
+        # self.moeda_jogo.change_y= self.movimento
+        # self.sprite_moeda_jogo.append(self.moeda_jogo)
+
+        # self.moeda2 = Moeda()
+        # self.moeda2.left =0
+        # self.moeda2.bottom = 60
+        # self.sprite_moeda_jogo.append(self.moeda2)
+
+        # self.moeda3 = Moeda()
+        # self.moeda3.left =700
+        # self.moeda3.bottom = 60
+        # self.sprite_moeda_jogo.append(self.moeda3)
+        
+
+        # self.sprite_moeda_jogo = arcade.SpriteList()
+        # self.sprite_moeda_jogo.append(self.moeda_jogo)
+        # self.sprite_moeda_jogo.append(self.moeda2)
+        # self.sprite_moeda_jogo.append(self.moeda3)
+
 
     def on_draw(self):
         self.clear()
