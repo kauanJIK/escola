@@ -48,6 +48,7 @@ class Inimigo(arcade.Sprite):
         super().__init__("Ini.png",scale = 0.8)
         self.textura_direita = arcade.load_texture("IniD.png")
         self.textura_esquerda = arcade.load_texture("IniE.png")
+        self.textura_normal = arcade.load_texture("Ini.png")
 
 
     def update(self,delta_time):
@@ -76,11 +77,6 @@ class Inimigo(arcade.Sprite):
         if self.bottom < 0:
             self.change_y = 0
             self.bottom = 0 
-
-    def update(self,delta_time):
-     
-        self.center_x += self.change_x
-        self.center_y += self.change_y
 
         if self.right > LARGURA or self.left < 0:
             self.change_x *= -1
@@ -211,7 +207,7 @@ class MeuJogo(arcade.Window):
 
         elif key == arcade.key.LEFT:
             self.jogador.change_x -= self.movimento
-            self.inimigo.change_x += self.movimento
+            self.inimigo.change_x -= self.movimento
 
 
         # elif key == arcade.key.UP:
@@ -228,12 +224,16 @@ class MeuJogo(arcade.Window):
         if key == arcade.key.RIGHT or key == arcade.key.LEFT:
             self.jogador.change_x = 0
             self.jogador.texture = self.jogador.textura_Normal
+            self.inimigo.texture = self.inimigo.textura_normal
+            
             
 
 
         elif key == arcade.key.UP or key == arcade.key.DOWN:
             self.jogador.change_y = 0
             self.jogador.texture = self.jogador.textura_Normal
+            self.inimigo.texture = self.inimigo.textura_normal
+            
        
 
 
