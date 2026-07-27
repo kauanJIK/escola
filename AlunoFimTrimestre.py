@@ -215,7 +215,7 @@ class TelaInstrucao(arcade.View):
         arcade.draw_text("cada)  e 1 moeda especial (5 pontos)" ,150, 330, arcade.color.BLACK, 10)
         arcade.draw_text("Colete as 26 moedas para vencer" ,150, 315, arcade.color.BLACK, 10)
         arcade.draw_text("INIMIGOS" ,165, 250, arcade.color.BLACK, 30)
-        arcade.draw_text("ET: Ninguêm sabe de onde veio." ,160, 225, arcade.color.BLACK, 10)
+        arcade.draw_text("ET: Ninguém sabe de onde veio." ,160, 225, arcade.color.BLACK, 10)
         arcade.draw_text("Mas ele gosta de seguir a Bia " ,160, 210, arcade.color.BLACK, 10)
         arcade.draw_text("HOMEM: Dizem que está procurando" ,160, 195, arcade.color.BLACK, 10)
         arcade.draw_text("algo. Não entre no seu caminho!!" ,160, 180, arcade.color.BLACK, 10)
@@ -332,7 +332,7 @@ class TelaMenu(arcade.View):
         self.clear()
         self.sprite_cenario.draw()
         
-        arcade.draw_text(f"A Garota, O Homen e O ET",75 ,500,
+        arcade.draw_text(f"A Garota, O HomeM e O ET",75 ,500,
                 arcade.color.BLACK, 40)
         
         arcade.draw_text(f"MENU",320 ,255,
@@ -354,6 +354,40 @@ class TelaMenu(arcade.View):
             tela_jogo = TelaJogo()
             self.window.show_view(tela_jogo)
 
+class TelaGanhou(arcade.View):
+    def __init__(self, pontuacao, tempo):
+        super().__init__()
+        self.pontuacao = pontuacao
+        self.tempo = tempo
+        arcade.set_background_color(arcade.color.PURPLE)
+        self.cenario_sprite = arcade.Sprite("Parabens.jpeg") 
+        self.cenario_sprite.width = LARGURA
+        self.cenario_sprite.height = ALTURA
+        self.cenario_sprite.center_x = LARGURA / 2
+        self.cenario_sprite.center_y = ALTURA / 2
+        self.sprite_cenario = arcade.SpriteList()
+        self.sprite_cenario.append(self.cenario_sprite)
+        
+
+    def on_draw(self):
+        self.clear()
+        self.sprite_cenario.draw()
+        arcade.draw_text(f"PARABÉNS",220 ,470,arcade.color.BLACK, 50)
+        if self.pontuacao == 30:
+            arcade.draw_text(f"INACREDITÁVEL",155 ,380,arcade.color.BLACK, 50)
+
+        arcade.draw_text(f"PONTUAÇÃO {self.pontuacao}",145 ,300, arcade.color.BLACK, 50)
+        arcade.draw_text(f"TEMPO {self.tempo:.1f}s",320 ,200, arcade.color.BLACK, 20)
+
+            
+        
+        
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.ESCAPE:
+            tela_menu = TelaMenu()
+            self.window.show_view(tela_menu)
+
+
     
 
 class TelaJogo(arcade.View):
@@ -364,6 +398,9 @@ class TelaJogo(arcade.View):
         self.pontuacao = 0
         self.registro =0
         self.velocidade = 3
+        self.tempo = 0
+        self.mensagem = ""
+        self.tempo_mensagem = 0
         self.velocidade_ini = 2
         self.cenario_sprite = arcade.Sprite("tela_jogo.jpeg") 
         self.cenario_sprite.width = LARGURA
@@ -420,14 +457,17 @@ class TelaJogo(arcade.View):
     def on_draw(self):
         self.clear()
         self.sprite_cenario.draw()
-        arcade.draw_text(f"Pontos Coletados: {self.pontuacao}", 10, 570,
-arcade.color.BLACK, 14)
+        
         
         self.sprite_inimigo.draw()
         self.sprite_moedas.draw()
         self.sprite_moeda_especial.draw()
         self.sprite_jogador.draw()
         self.sprite_inimigo_especial.draw()
+        arcade.draw_text(f"Pontos Coletados: {self.pontuacao}", 10, 570,arcade.color.BLACK, 14)
+        arcade.draw_text(f"Tempo: {self.tempo:.1f}s",10,545,arcade.color.BLACK,14)
+        if self.tempo_mensagem > 0:
+            arcade.draw_text(self.mensagem,220,515,arcade.color.RED,20)
 
 
 
@@ -439,6 +479,9 @@ arcade.color.BLACK, 14)
         self.sprite_inimigo.update()
         self.sprite_inimigo_especial.update()
         self.sprite_moeda_especial.update()
+        self.tempo += delta_time
+        if self.tempo_mensagem > 0:
+            self.tempo_mensagem -= delta_time
 
         moedas_colididas = arcade.check_for_collision_with_list(self.jogador,self.sprite_moedas)
         moeda_especial_colidida = arcade.check_for_collision_with_list(self.jogador,self.sprite_moeda_especial)
@@ -448,6 +491,8 @@ arcade.color.BLACK, 14)
         for inimigo in npc_normal:
             self.pontuacao -= 1
             print("Colidiu com o professor!")
+            self.mensagem = "TOCOU NO HOMEN PERDEU 1 PONTO!"
+            self.tempo_mensagem = 1.5
             while True:
                 inimigo.center_x = random.randint(50, LARGURA - 50)
                 inimigo.center_y = random.randint(50, 500)
@@ -457,7 +502,10 @@ arcade.color.BLACK, 14)
 
         for inimigo_especial in npc_especial:
                     self.pontuacao -= 1
-                    print("Colidiu com o professor!")
+                    print("Colidiu com o alien!")
+                    
+                    self.mensagem = "TOCOU NO ET PERDEU 1 PONTO!"
+                    self.tempo_mensagem = 1.5
                     while True:
                         inimigo_especial.center_x = random.randint(50, LARGURA - 50)
                         inimigo_especial.center_y = random.randint(50, ALTURA - 50)
@@ -480,7 +528,7 @@ arcade.color.BLACK, 14)
 
         
         if len(self.sprite_moeda_especial) == 0 and len(self.sprite_moedas) == 0:
-                tela_final = TelaGanhou(self.pontuacao)
+                tela_final = TelaGanhou(self.pontuacao, self.tempo)
                 self.window.show_view(tela_final)
 
         
@@ -491,11 +539,11 @@ arcade.color.BLACK, 14)
         
 
     def on_key_press(self, key, modifiers):
-        if key == arcade.key.RIGHT:
+        if key == arcade.key.D:
             self.jogador.change_x = self.velocidade
-        if key == arcade.key.LEFT:
+        if key == arcade.key.A:
             self.jogador.change_x = -self.velocidade
-        if key == arcade.key.UP and self.jogador.bottom <= 0:
+        if key == arcade.key.W and self.jogador.bottom <= 0:
             self.jogador.change_y = 23
         
 
@@ -505,7 +553,7 @@ arcade.color.BLACK, 14)
 
 
     def on_key_release(self, key, modifiers):
-        if key == arcade.key.RIGHT or key == arcade.key.LEFT:
+        if key == arcade.key.A or key == arcade.key.D:
             self.jogador.change_x = 0
             self.jogador.texture = self.jogador.texture_parado
         
