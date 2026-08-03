@@ -308,6 +308,8 @@ class TelaMenu(arcade.View):
         arcade.draw_text(f"CLIQUE J PARA JOGAR",320 ,220, arcade.color.BLACK, 12)
         arcade.draw_text(f"CLIQUE S PARA SOBRE O JOGO",305 ,170, arcade.color.BLACK, 10)
         arcade.draw_text(f"CLIQUE I PARA INSTRUÇÃO",305 ,120, arcade.color.BLACK, 11)
+        arcade.draw_text(f"X ESC",710 ,570, arcade.color.RED, 20)
+
 
 
                 
@@ -321,6 +323,8 @@ class TelaMenu(arcade.View):
         if key == arcade.key.J:
             tela_jogo = TelaJogo()
             self.window.show_view(tela_jogo)
+        if key == arcade.key.ESCAPE:
+            self.window.close()
 
 class TelaGanhou(arcade.View):
     def __init__(self, pontuacao, tempo):
@@ -346,7 +350,7 @@ class TelaGanhou(arcade.View):
 
         arcade.draw_text(f"PONTUAÇÃO {self.pontuacao}",145 ,300, arcade.color.BLACK, 50)
         arcade.draw_text(f"TEMPO {self.tempo:.1f}s",320 ,200, arcade.color.BLACK, 20)
-        arcade.draw_text(f"MENU: ESC",700,570,arcade.color.BLACK,14)
+        arcade.draw_text(f"MENU: ESC",690,570,arcade.color.BLACK,14)
 
             
         
