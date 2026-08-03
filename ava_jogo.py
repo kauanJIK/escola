@@ -346,7 +346,6 @@ class TelaGanhou(arcade.View):
 
         arcade.draw_text(f"PONTUAÇÃO {self.pontuacao}",145 ,300, arcade.color.BLACK, 50)
         arcade.draw_text(f"TEMPO {self.tempo:.1f}s",320 ,200, arcade.color.BLACK, 20)
-        arcade.draw_text(f"MENU: ESC",700,570,arcade.color.BLACK,14)
 
             
         
@@ -435,11 +434,8 @@ class TelaJogo(arcade.View):
         self.sprite_inimigo_especial.draw()
         arcade.draw_text(f"Pontos Coletados: {self.pontuacao}", 10, 570,arcade.color.BLACK, 14)
         arcade.draw_text(f"Tempo: {self.tempo:.1f}s",10,545,arcade.color.BLACK,14)
-        arcade.draw_text(f"SAIR: ESC",700,570,arcade.color.BLACK,14)
-
         if self.tempo_mensagem > 0:
             arcade.draw_text(self.mensagem,220,515,arcade.color.RED,20)
-        
 
 
 
