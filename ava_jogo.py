@@ -4,7 +4,7 @@ import random
 #Definido Altura e Largura e Titulo da tela do jogo
 ALTURA = 600
 LARGURA = 800
-TITULO = "A Garota, O Homen e O ET"
+TITULO = "A Garota, O Homem e O ET"
 #anotações 
 #right = direita
 #left = esquerda
@@ -99,7 +99,7 @@ class Inimigo_Especial(arcade.Sprite):
         
         self.texture_direita_a = arcade.load_texture("alien.png")       
         self.texture_esquerda_e = arcade.load_texture("alien2.png")
-        self.velocidade = 3.5
+        self.velocidade = 3
 
     def update(self,delta_time):
         dx = self.jogador.center_x - self.center_x
@@ -119,12 +119,6 @@ class Inimigo_Especial(arcade.Sprite):
         if self.change_x > 0:
             self.texture = self.texture_direita_a
         elif self.change_x < 0:
-            self.texture = self.texture_esquerda_e
-     
-    
-        if self.change_x > 0:                
-            self.texture = self.texture_direita_a
-        if self.change_x < 0:
             self.texture = self.texture_esquerda_e
     
         confBordas(self, rebater = False)
@@ -265,7 +259,7 @@ class TelaSobre(arcade.View):
         arcade.draw_text("|" ,360, 285, arcade.color.BLACK, 120)
         arcade.draw_text("|" ,360, 193, arcade.color.BLACK, 120)
 
-        arcade.draw_text("Kauan Campois",460, 180,arcade.color.BLACK,18)
+        arcade.draw_text("Kauan Campois",480, 180,arcade.color.BLACK,18)
         arcade.draw_text("ESC| M: Botão para voltar pro menu" ,173, 70, arcade.color.BLACK, 20)
 
         
@@ -300,14 +294,14 @@ class TelaMenu(arcade.View):
         self.clear()
         self.sprite_cenario.draw()
         
-        arcade.draw_text(f"A Garota, O HomeM e O ET",75 ,500,
+        arcade.draw_text(f"A Garota, O Homem e O ET",75 ,500,
                 arcade.color.BLACK, 40)
         
         arcade.draw_text(f"MENU",320 ,255,
         arcade.color.BLACK, 40)
         arcade.draw_text(f"CLIQUE J PARA JOGAR",320 ,220, arcade.color.BLACK, 12)
-        arcade.draw_text(f"CLIQUE S PARA SOBRE O JOGO",305 ,170, arcade.color.BLACK, 10)
-        arcade.draw_text(f"CLIQUE I PARA INSTRUÇÃO",305 ,120, arcade.color.BLACK, 11)
+        arcade.draw_text(f"CLIQUE S PARA SOBRE O JOGO",320 ,170, arcade.color.BLACK, 10)
+        arcade.draw_text(f"CLIQUE I PARA INSTRUÇÃO",325 ,120, arcade.color.BLACK, 11)
         arcade.draw_text(f"X ESC",710 ,570, arcade.color.RED, 20)
 
 
@@ -369,7 +363,6 @@ class TelaJogo(arcade.View):
         arcade.set_background_color(arcade.color.WHITE)
         
         self.pontuacao = 0
-        self.registro =0
         self.velocidade = 3
         self.tempo = 0
         self.mensagem = ""
@@ -493,13 +486,13 @@ class TelaJogo(arcade.View):
             moeda.remove_from_sprite_lists()
            
             self.pontuacao += 1
-            self.registro +=1
+           
             print(self.pontuacao)
             
         for moeda_especial in moeda_especial_colidida:
             moeda_especial.remove_from_sprite_lists()
             self.pontuacao +=5
-            self.registro += 1
+            
             print(self.pontuacao)
 
         
