@@ -14,19 +14,19 @@ GRAVIDADE = 0.5
 
 def confBordas(objeto, rebater=False):
     # --- Parede Direita ---
-    if objeto.right > LARGURA:
+    if objeto.right >= LARGURA:
         objeto.right = LARGURA
         if rebater:
             objeto.change_x *= -1
 
     # --- Parede Esquerda ---
-    if objeto.left < 0:
+    if objeto.left <= 0:
         objeto.left = 0
         if rebater:
             objeto.change_x *= -1
 
     # --- Teto ---
-    if objeto.top > ALTURA:
+    if objeto.top >= ALTURA:
         objeto.top = ALTURA
         if rebater:
             objeto.change_y *= -1
@@ -34,7 +34,7 @@ def confBordas(objeto, rebater=False):
             objeto.change_y = 0
 
     # --- Chão ---
-    if objeto.bottom < 0:
+    if objeto.bottom <= 0:
         objeto.bottom = 0
         if rebater:
             objeto.change_y *= -1
@@ -92,7 +92,7 @@ class MoedaEspecial(arcade.Sprite):
         
 class Inimigo_Especial(arcade.Sprite):
     def __init__(self, jogador):
-        super().__init__("alien.png", scale = 0.56)
+        super().__init__("alien.png", scale = 0.46)
         self.jogador = jogador
         
         self.texture_direita_a = arcade.load_texture("alien.png")       
@@ -139,22 +139,13 @@ class Inimigo(arcade.Sprite):
     def update(self,delta_time):
         self.center_x += self.change_x
         self.center_y += self.change_y
-        
 
         if self.change_x > 0:
             self.texture = self.texture_direita_a
-        if self.change_x < 0:
+        elif self.change_x < 0:
             self.texture = self.texture_esquerda_e
 
-        # if self.bottom < 60:
-        #     self.bottom = 60
-
-        if self.right >= LARGURA:
-            self.right = 800
-            self.change_x *= -1 
-        if self.left <= 0:
-            self.left = 0
-            self.change_x *= -1
+        confBordas(self, rebater=True)
 
 class Bloco(arcade.Sprite):
     def __init__(self, x: float, y: float):
@@ -316,8 +307,8 @@ class TelaMenu(arcade.View):
         arcade.draw_text(f"MENU",320 ,255,
         arcade.color.BLACK, 40)
         arcade.draw_text(f"CLIQUE J PARA JOGAR",320 ,220, arcade.color.BLACK, 12)
-        arcade.draw_text(f"CLIQUE S PARA SOBRE O JOGO",320 ,170, arcade.color.BLACK, 10)
-        arcade.draw_text(f"CLIQUE I PARA INSTRUÇÃO",325 ,120, arcade.color.BLACK, 11)
+        arcade.draw_text(f"CLIQUE S PARA SOBRE O JOGO",305 ,170, arcade.color.BLACK, 10)
+        arcade.draw_text(f"CLIQUE I PARA INSTRUÇÃO",305 ,120, arcade.color.BLACK, 11)
         arcade.draw_text(f"X ESC",710 ,570, arcade.color.RED, 20)
 
 
@@ -374,6 +365,23 @@ class TelaGanhou(arcade.View):
     
 
 class TelaJogo(arcade.View):
+    def _reposicionar_sprite_seguro(self, sprite, distancia_minima=250, margem=40):
+        for _ in range(200):
+            x = random.randint(margem, LARGURA - margem)
+            y = random.randint(50, ALTURA - 150)
+            sprite.center_x = x
+            sprite.center_y = y
+
+            if (
+                arcade.get_distance_between_sprites(sprite, self.jogador) >= distancia_minima
+                and not arcade.check_for_collision_with_list(sprite, self.sprite_blocos)
+            ):
+                return True
+
+        sprite.center_x = 100
+        sprite.center_y = 150
+        return False
+
     def __init__(self):
         super().__init__()
         arcade.set_background_color(arcade.color.WHITE)
@@ -383,7 +391,7 @@ class TelaJogo(arcade.View):
         self.tempo = 0
         self.mensagem = ""
         self.tempo_mensagem = 0
-        self.velocidade_ini = 2
+        self.velocidade_ini = 1.5
         self.cenario_sprite = arcade.Sprite("tela_jogo.jpeg") 
         self.cenario_sprite.width = LARGURA
         self.cenario_sprite.height = ALTURA
@@ -479,13 +487,12 @@ class TelaJogo(arcade.View):
     def on_draw(self):
         self.clear()
         self.sprite_cenario.draw()
-        
-        
+        self.sprite_blocos.draw()
+
         self.sprite_inimigo.draw()
         self.sprite_moedas.draw()
         self.sprite_moeda_especial.draw()
         self.sprite_jogador.draw()
-        self.sprite_blocos.draw()
         self.sprite_inimigo_especial.draw()
         arcade.draw_text(f"Pontos Coletados: {self.pontuacao}", 10, 570,arcade.color.BLACK, 14)
         arcade.draw_text(f"Tempo: {self.tempo:.1f}s",10,545,arcade.color.BLACK,14)
@@ -525,13 +532,7 @@ class TelaJogo(arcade.View):
             print("Colidiu com o professor!")
             self.mensagem = "TOCOU NO HOMEN PERDEU 1 PONTO!"
             self.tempo_mensagem = 1.5
-            while True:
-                inimigo.center_x = random.randint(50, LARGURA - 50)
-                inimigo.center_y = random.randint(20, 100)
-                
-
-                if arcade.get_distance_between_sprites(inimigo, self.jogador) >= 250:
-                    break
+            self._reposicionar_sprite_seguro(inimigo)
 
         for inimigo_especial in npc_especial:
             self.pontuacao -= 1
@@ -539,13 +540,7 @@ class TelaJogo(arcade.View):
             
             self.mensagem = "TOCOU NO ET PERDEU 1 PONTO!"
             self.tempo_mensagem = 1.5
-            while True:
-                inimigo_especial.center_x = random.randint(50, LARGURA - 50)
-                inimigo_especial.center_y = random.randint(50, ALTURA - 50)
-                
-
-                if arcade.get_distance_between_sprites(inimigo_especial, self.jogador) >= 250:
-                    break
+            self._reposicionar_sprite_seguro(inimigo_especial, distancia_minima=220)
 
         for bloco in moedas_direc:
             print("moeda colidiu")
@@ -606,11 +601,11 @@ class TelaJogo(arcade.View):
         
 
     def on_key_press(self, key, modifiers):
-        if key == arcade.key.D:
+        if key == arcade.key.D or key == arcade.key.RIGHT:
             self.jogador.change_x = self.velocidade
-        if key == arcade.key.A:
+        if key == arcade.key.A or key == arcade.key.LEFT:
             self.jogador.change_x = -self.velocidade
-        if key == arcade.key.W:
+        if key == arcade.key.W or  key == arcade.key.UP:
             if self.engine_fisica.can_jump(): 
                 self.jogador.change_y = 16
 
@@ -620,7 +615,7 @@ class TelaJogo(arcade.View):
 
 
     def on_key_release(self, key, modifiers):
-        if key == arcade.key.A or key == arcade.key.D:
+        if key == arcade.key.A or key == arcade.key.D  or key == arcade.key.RIGHT or key == arcade.key.LEFT:
             self.jogador.change_x = 0
             self.jogador.texture = self.jogador.texture_parado
         
