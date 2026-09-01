@@ -44,25 +44,55 @@ def confBordas(objeto, rebater=False):
 #classe player
 class Player(arcade.Sprite):
     def __init__(self):
+        sheet_direita = arcade.load_spritesheet("AnaGabriele.png")
+
+        quadros_direita = sheet_direita.get_texture_grid(
+            size = (252, 247),
+            columns = 4,
+            count = 4
+        )
+        quadros_esquerda = []
+        for frame in quadros_direita:
+            quadros_esquerda.append(frame.flip_left_right())
         super().__init__("bia.png", scale = 0.7)
        
-        self.texture_direita_a = arcade.load_texture("bia_direita2.png")
-        self.texture_parado = arcade.load_texture("bia.png")
-        self.texture_esquerda_e = arcade.load_texture("bia_esquerda2.png")
+        # self.texture_direita_a = arcade.load_texture("bia_direita2.png")
+        # self.texture_parado = arcade.load_texture("bia.png")
+        # self.texture_esquerda_e = arcade.load_texture("bia_esquerda2.png")
         self.gravidade = GRAVIDADE
+        self.texture_parado_d = quadros_direita
+        self.texture_parado_e = quadros_esquerda
 
+        self.passos_direita = [quadros_direita[1], quadros_direita[2]]
+        self.passos_esquerda = [quadros_esquerda[1], quadros_esquerda[2]]
+
+        self.texture_pulo_d = quadros_direita[3]
+        self.texture_pulo_e = quadros_esquerda[3]
         
+        self.quadro_atual : int = 0
+        self.tempo_animacao : float = 0.0
+        self.virado_para : str = "Direita"
     def update(self, delta_time):
+        
+
+       
         if self.change_x > 0:
-            self.texture = self.texture_direita_a
+            self.virado_para = "Direita"
 
         elif self.change_x < 0:
-            self.texture = self.texture_esquerda_e
-
+            self.virado_para = "Esquerda"
         
 
 
         confBordas(self, rebater =False)
+        if self.change_y != 0:
+            self.texture = self.texture_pulo_d
+
+            if self.virado_para == "Direita":
+                self.texture = self.texture_pulo_d
+            else:
+                self.texture_pulo_e
+                return
       
 
 
