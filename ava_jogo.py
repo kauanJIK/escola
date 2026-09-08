@@ -1,3 +1,11 @@
+from peewee import *
+db = SqliteDatabase("pontuacao.db")
+
+
+
+class BaseModel(Model):
+    class Meta:
+        database = db
 
 import arcade
 import random
@@ -44,59 +52,61 @@ def confBordas(objeto, rebater=False):
 #classe player
 class Player(arcade.Sprite):
     def __init__(self):
-        sheet_direita = arcade.load_spritesheet("AnaGabriele.png")
-
-        quadros_direita = sheet_direita.get_texture_grid(
-            size = (252, 247),
-            columns = 4,
-            count = 4
+        sheet = arcade.load_spritesheet("AnaGabriele.png")
+        quadros = sheet.get_texture_grid(
+            size=(332, 397),
+            columns=4,
+            count=8,
         )
-        quadros_esquerda = []
-        for frame in quadros_direita:
-            quadros_esquerda.append(frame.flip_left_right())
-        super().__init__("bia.png", scale = 0.7)
-       
-        # self.texture_direita_a = arcade.load_texture("bia_direita2.png")
-        # self.texture_parado = arcade.load_texture("bia.png")
-        # self.texture_esquerda_e = arcade.load_texture("bia_esquerda2.png")
+
+        quadros_direita = quadros[:4]
+        quadros_esquerda = [frame.flip_left_right() for frame in quadros_direita]
+
+        super().__init__(scale=0.2)
+
         self.gravidade = GRAVIDADE
-        self.texture_parado_d = quadros_direita
-        self.texture_parado_e = quadros_esquerda
 
-        self.passos_direita = [quadros_direita[1], quadros_direita[2]]
-        self.passos_esquerda = [quadros_esquerda[1], quadros_esquerda[2]]
+        self.texture_parado_d = quadros_direita[0]
+        self.texture_parado_e = quadros_esquerda[0]
+        self.texture_parado = self.texture_parado_d
 
-        self.texture_pulo_d = quadros_direita[3]
-        self.texture_pulo_e = quadros_esquerda[3]
-        
-        self.quadro_atual : int = 0
-        self.tempo_animacao : float = 0.0
-        self.virado_para : str = "Direita"
+        self.passos_direita = quadros_direita[1:]
+        self.passos_esquerda = quadros_esquerda[1:]
+
+        self.texture_pulo_d = quadros_direita[-1]
+        self.texture_pulo_e = quadros_esquerda[-1]
+
+        self.quadro_atual: int = 0
+        self.tempo_animacao: float = 0.0
+        self.virado_para: str = "Direita"
+        self.texture = self.texture_parado_d
+
     def update(self, delta_time):
-        
-
-       
         if self.change_x > 0:
             self.virado_para = "Direita"
-
         elif self.change_x < 0:
             self.virado_para = "Esquerda"
-        
 
+        confBordas(self, rebater=False)
 
-        confBordas(self, rebater =False)
         if self.change_y != 0:
-            self.texture = self.texture_pulo_d
-
             if self.virado_para == "Direita":
                 self.texture = self.texture_pulo_d
             else:
-                self.texture_pulo_e
-                return
-      
+                self.texture = self.texture_pulo_e
+            return
 
-
-
+        if self.change_x != 0:
+            frames = self.passos_direita if self.virado_para == "Direita" else self.passos_esquerda
+            self.tempo_animacao += delta_time
+            if self.tempo_animacao >= 0.12:
+                self.tempo_animacao = 0.0
+                self.quadro_atual = (self.quadro_atual + 1) % len(frames)
+            self.texture = frames[self.quadro_atual]
+            self.texture_parado = self.texture_parado_d if self.virado_para == "Direita" else self.texture_parado_e
+        else:
+            self.texture_parado = self.texture_parado_d if self.virado_para == "Direita" else self.texture_parado_e
+            self.texture = self.texture_parado
 
 
 class Moeda(arcade.Sprite):
@@ -645,11 +655,9 @@ class TelaJogo(arcade.View):
 
 
     def on_key_release(self, key, modifiers):
-        if key == arcade.key.A or key == arcade.key.D  or key == arcade.key.RIGHT or key == arcade.key.LEFT:
+        if key == arcade.key.A or key == arcade.key.D or key == arcade.key.RIGHT or key == arcade.key.LEFT:
             self.jogador.change_x = 0
             self.jogador.texture = self.jogador.texture_parado
-        
-    
 
 
 
