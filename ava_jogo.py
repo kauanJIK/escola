@@ -1,14 +1,23 @@
+import datetime
 from peewee import *
+import arcade
+import random
 db = SqliteDatabase("pontuacao.db")
-
-
-
 class BaseModel(Model):
     class Meta:
         database = db
+class Ranking(BaseModel):
+    nome_jogador = CharField
+    pontos = IntegerField
+    tempo_partida = FloatField
+    data_hora = DateTimeField(default=datetime.datetime.now)
 
-import arcade
-import random
+    def __str__(self):
+        return (f"{self.nome_jogador} - "
+                f"{self.pontos} pts "
+                f"({self.tempo_partida:.1f}s)")
+
+
 #Definido Altura e Largura e Titulo da tela do jogo
 ALTURA = 600
 LARGURA = 800
@@ -199,7 +208,79 @@ class BlocoV(arcade.Sprite):
         self.center_x = x
         self.center_y = y
 
+class TelaMenu(arcade.View):
+    def __init__(self):
+        super().__init__()
+        arcade.set_background_color(arcade.color.WHITE)
+        self.cenario_sprite = arcade.Sprite("menu.jpeg") 
+        self.cenario_sprite.width = LARGURA
+        self.cenario_sprite.height = ALTURA
+        self.cenario_sprite.center_x = LARGURA / 2
+        self.cenario_sprite.center_y = ALTURA / 2
+        self.sprite_cenario = arcade.SpriteList()
+        self.sprite_cenario.append(self.cenario_sprite)
+       
         
+
+    def on_draw(self):
+        self.clear()
+        self.sprite_cenario.draw()
+        
+        arcade.draw_text(f"A Garota, O Homem e O ET",75 ,500,
+                arcade.color.BLACK, 40)
+        
+        arcade.draw_text(f"MENU",320 ,255,
+        arcade.color.BLACK, 40)
+        arcade.draw_text(f"CLIQUE J PARA JOGAR",320 ,220, arcade.color.BLACK, 12)
+        arcade.draw_text(f"CLIQUE S PARA SOBRE O JOGO",305 ,170, arcade.color.BLACK, 10)
+        arcade.draw_text(f"CLIQUE I PARA INSTRUÇÃO",305 ,120, arcade.color.BLACK, 11)
+        arcade.draw_text(f"CLIQUE K PARA RANKING",305 ,80, arcade.color.BLACK, 11)
+        arcade.draw_text(f"X ESC",710 ,570, arcade.color.RED, 20)
+
+
+
+                
+    def on_key_press(self,key,modyfiers):
+        if key == arcade.key.K:
+            tela_ranking = TelaRanking()
+            self.window.show_view(tela_ranking)
+        if key == arcade.key.I:
+            tela_instrucao = TelaInstrucao()
+            self.window.show_view(tela_instrucao)
+        if key == arcade.key.S:
+            tela_sobre = TelaSobre()
+            self.window.show_view(tela_sobre)
+        if key == arcade.key.J:
+            tela_jogo = TelaJogo()
+            self.window.show_view(tela_jogo)
+        if key == arcade.key.ESCAPE:
+            self.window.close()
+
+class TelaRanking(arcade.View):
+    def __init__ (self):
+        super().__init__()
+        arcade.set_background_color(arcade.color.WHITE)
+        self.cenario_sprite = arcade.Sprite("kauan.jpg")
+        self.cenario_sprite.width = LARGURA
+        self.cenario_sprite.height = ALTURA
+        self.cenario_sprite.center_x = LARGURA / 2
+        self.cenario_sprite.center_y = ALTURA / 2
+
+        self.sprite_cenario = arcade.SpriteList()
+        self.sprite_cenario.append(self.cenario_sprite)
+        self.lista_ranking = []
+
+        rank = Ranking.select()
+        for i in rank:
+            print(i)
+    def on_draw(self):
+            self.clear()
+            self.sprite_cenario.draw()
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.ESCAPE:
+            tela_menu = TelaMenu()
+            self.window.show_view(tela_menu)
 class TelaInstrucao(arcade.View):
     def __init__(self):
         super().__init__()
@@ -323,49 +404,7 @@ class TelaSobre(arcade.View):
 
 
 
-class TelaMenu(arcade.View):
-    def __init__(self):
-        super().__init__()
-        arcade.set_background_color(arcade.color.WHITE)
-        self.cenario_sprite = arcade.Sprite("menu.jpeg") 
-        self.cenario_sprite.width = LARGURA
-        self.cenario_sprite.height = ALTURA
-        self.cenario_sprite.center_x = LARGURA / 2
-        self.cenario_sprite.center_y = ALTURA / 2
-        self.sprite_cenario = arcade.SpriteList()
-        self.sprite_cenario.append(self.cenario_sprite)
-       
-        
 
-    def on_draw(self):
-        self.clear()
-        self.sprite_cenario.draw()
-        
-        arcade.draw_text(f"A Garota, O Homem e O ET",75 ,500,
-                arcade.color.BLACK, 40)
-        
-        arcade.draw_text(f"MENU",320 ,255,
-        arcade.color.BLACK, 40)
-        arcade.draw_text(f"CLIQUE J PARA JOGAR",320 ,220, arcade.color.BLACK, 12)
-        arcade.draw_text(f"CLIQUE S PARA SOBRE O JOGO",305 ,170, arcade.color.BLACK, 10)
-        arcade.draw_text(f"CLIQUE I PARA INSTRUÇÃO",305 ,120, arcade.color.BLACK, 11)
-        arcade.draw_text(f"X ESC",710 ,570, arcade.color.RED, 20)
-
-
-
-                
-    def on_key_press(self,key,modyfiers):
-        if key == arcade.key.I:
-            tela_instrucao = TelaInstrucao()
-            self.window.show_view(tela_instrucao)
-        if key == arcade.key.S:
-            tela_sobre = TelaSobre()
-            self.window.show_view(tela_sobre)
-        if key == arcade.key.J:
-            tela_jogo = TelaJogo()
-            self.window.show_view(tela_jogo)
-        if key == arcade.key.ESCAPE:
-            self.window.close()
 
 class TelaGanhou(arcade.View):
     def __init__(self, pontuacao, tempo):
