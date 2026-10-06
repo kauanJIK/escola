@@ -1,21 +1,73 @@
-import datetime
-from peewee import *
+
+
 import arcade
 import random
+import datetime
+from peewee import *
+
 db = SqliteDatabase("pontuacao.db")
 class BaseModel(Model):
     class Meta:
         database = db
 class Ranking(BaseModel):
-    nome_jogador = CharField
-    pontos = IntegerField
-    tempo_partida = FloatField
+    nome_jogador = CharField()
+    pontos = IntegerField()
+    tempo_partida = FloatField()
     data_hora = DateTimeField(default=datetime.datetime.now)
-
+    
     def __str__(self):
-        return (f"{self.nome_jogador} - "
-                f"{self.pontos} pts "
-                f"({self.tempo_partida:.1f}s)")
+        return (
+            f"{self.nome_jogador} - {self.pontos} pts "
+            f"({self.tempo_partida:.1f}s)"
+        )
+
+    
+
+        
+
+
+
+def preparar_banco():
+    db.connect(reuse_if_open=True)
+    db.create_tables([Ranking])
+    colunas = {
+        linha[1]
+        for linha in db.execute_sql("PRAGMA table_info(ranking)").fetchall()
+    }
+    if "nome_jogador" not in colunas:
+        db.execute_sql(
+            "ALTER TABLE ranking ADD COLUMN "
+            "nome_jogador VARCHAR NOT NULL DEFAULT 'Jogador'"
+        )
+    if "pontos" not in colunas:
+        db.execute_sql(
+            "ALTER TABLE ranking ADD COLUMN pontos INTEGER NOT NULL DEFAULT 0"
+        )
+    if "tempo_partida" not in colunas:
+        db.execute_sql(
+            "ALTER TABLE ranking ADD COLUMN tempo_partida "
+            "REAL NOT NULL DEFAULT 0"
+        )
+
+
+def salvar_resultado(nome_jogador, pontos, tempo_partida):
+    preparar_banco()
+    Ranking.create(
+        nome_jogador=nome_jogador,
+        pontos=pontos,
+        tempo_partida=tempo_partida,
+    )
+
+
+def obter_top10():
+    preparar_banco()
+    consulta = (
+        Ranking.select()
+        .order_by(Ranking.pontos.desc(), Ranking.tempo_partida.asc())
+        .limit(10)
+    )
+    return list(consulta)
+
 
 
 #Definido Altura e Largura e Titulo da tela do jogo
@@ -211,6 +263,9 @@ class BlocoV(arcade.Sprite):
 class TelaMenu(arcade.View):
     def __init__(self):
         super().__init__()
+        self.nome_jogador = ""
+        self.digitando_nome = False
+        self.ignorar_n_inicial = False
         arcade.set_background_color(arcade.color.WHITE)
         self.cenario_sprite = arcade.Sprite("menu.jpeg") 
         self.cenario_sprite.width = LARGURA
@@ -231,7 +286,15 @@ class TelaMenu(arcade.View):
         
         arcade.draw_text(f"MENU",320 ,255,
         arcade.color.BLACK, 40)
-        arcade.draw_text(f"CLIQUE J PARA JOGAR",320 ,220, arcade.color.BLACK, 12)
+        if self.digitando_nome:
+            arcade.draw_text("DIGITE SEU NOME E PRESSIONE ENTER",230,420,arcade.color.BLACK,12)
+            arcade.draw_text(self.nome_jogador + "_",320,390,arcade.color.BLACK,16)
+            arcade.draw_text("_________________________________________",280,390,arcade.color.BLACK,12)
+            
+
+        else:
+            arcade.draw_text("DIGITE N PARA DIGITAR O NOME",280,250,arcade.color.BLACK,12)
+        arcade.draw_text("J PARA JOGAR COM O NOME PADRAO",280,220,arcade.color.BLACK,12)
         arcade.draw_text(f"CLIQUE S PARA SOBRE O JOGO",305 ,170, arcade.color.BLACK, 10)
         arcade.draw_text(f"CLIQUE I PARA INSTRUÇÃO",305 ,120, arcade.color.BLACK, 11)
         arcade.draw_text(f"CLIQUE K PARA RANKING",305 ,80, arcade.color.BLACK, 11)
@@ -241,6 +304,19 @@ class TelaMenu(arcade.View):
 
                 
     def on_key_press(self,key,modyfiers):
+        if self.digitando_nome:
+            if key == arcade.key.BACKSPACE:
+                self.nome_jogador = self.nome_jogador[:-1]
+            elif key == arcade.key.ENTER:
+                nome = self.nome_jogador.strip() or "Jogador"
+                tela_jogo = TelaJogo(nome)
+                self.window.show_view(tela_jogo)
+            elif key == arcade.key.ESCAPE:
+                self.digitando_nome = False
+                self.nome_jogador = ""
+                self.ignorar_n_inicial = False
+            return
+
         if key == arcade.key.K:
             tela_ranking = TelaRanking()
             self.window.show_view(tela_ranking)
@@ -251,31 +327,63 @@ class TelaMenu(arcade.View):
             tela_sobre = TelaSobre()
             self.window.show_view(tela_sobre)
         if key == arcade.key.J:
-            tela_jogo = TelaJogo()
+            tela_jogo = TelaJogo(self.nome_jogador.strip() or "Jogador")
             self.window.show_view(tela_jogo)
+
+
+        if key == arcade.key.N:
+            self.digitando_nome = True
+            self.ignorar_n_inicial = True
         if key == arcade.key.ESCAPE:
             self.window.close()
 
+    def on_text(self, texto):
+        if self.digitando_nome:
+            if self.ignorar_n_inicial:
+                self.ignorar_n_inicial = False
+                if texto.lower() == "n":
+                    return
+            caracteres_validos = "".join(
+                caractere for caractere in texto
+                if caractere.isalnum() or caractere == " "
+            )
+            self.nome_jogador = (self.nome_jogador + caracteres_validos)[:20]
+
 class TelaRanking(arcade.View):
-    def __init__ (self):
+    def __init__(self):
         super().__init__()
         arcade.set_background_color(arcade.color.WHITE)
-        self.cenario_sprite = arcade.Sprite("kauan.jpg")
+        self.cenario_sprite = arcade.Sprite("kauan.jpg") 
         self.cenario_sprite.width = LARGURA
         self.cenario_sprite.height = ALTURA
         self.cenario_sprite.center_x = LARGURA / 2
         self.cenario_sprite.center_y = ALTURA / 2
-
         self.sprite_cenario = arcade.SpriteList()
         self.sprite_cenario.append(self.cenario_sprite)
-        self.lista_ranking = []
+        self.ranking = obter_top10()
+        
 
-        rank = Ranking.select()
-        for i in rank:
-            print(i)
     def on_draw(self):
-            self.clear()
-            self.sprite_cenario.draw()
+        self.clear()
+        self.sprite_cenario.draw()
+        arcade.draw_text("TOP 10", 330, 520, arcade.color.BLACK, 24)
+
+        if not self.ranking:
+            arcade.draw_text("Ainda nao ha partidas", 270, 470, arcade.color.BLACK, 16)
+        else:
+            for posicao, resultado in enumerate(self.ranking, start=1):
+                texto = (
+                    f"{posicao}. {resultado.nome_jogador} - "
+                    f"{resultado.pontos} pts - "
+                    f"{resultado.tempo_partida:.1f}s"
+                )
+                arcade.draw_text(
+                    texto,
+                    120,
+                    470 - (posicao - 1) * 35,
+                    arcade.color.BLACK,
+                    16,
+                )
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.ESCAPE:
@@ -461,11 +569,13 @@ class TelaJogo(arcade.View):
         sprite.center_y = 150
         return False
 
-    def __init__(self):
+    def __init__(self, nome_jogador="Jogador"):
         super().__init__()
+        self.nome_jogador = nome_jogador
         arcade.set_background_color(arcade.color.WHITE)
         
         self.pontuacao = 0
+        self.resultado_salvo = False
         self.velocidade = 3
         self.tempo = 0
         self.mensagem = ""
@@ -573,7 +683,7 @@ class TelaJogo(arcade.View):
         self.sprite_moeda_especial.draw()
         self.sprite_jogador.draw()
         self.sprite_inimigo_especial.draw()
-        arcade.draw_text(f"Pontos Coletados: {self.pontuacao}", 10, 570,arcade.color.BLACK, 14)
+        arcade.draw_text(f"{self.nome_jogador} | Pontos Coletados: {self.pontuacao}", 10, 570,arcade.color.BLACK, 14)
         arcade.draw_text(f"Tempo: {self.tempo:.1f}s",10,545,arcade.color.BLACK,14)
         arcade.draw_text(f"SAIR: ESC",700,570,arcade.color.BLACK,14)
 
@@ -667,9 +777,15 @@ class TelaJogo(arcade.View):
             print(self.pontuacao)
 
         
-        if len(self.sprite_moeda_especial) == 0 and len(self.sprite_moedas) == 0:
-                tela_final = TelaGanhou(self.pontuacao, self.tempo)
-                self.window.show_view(tela_final)
+        if (
+            len(self.sprite_moeda_especial) == 0
+            and len(self.sprite_moedas) == 0
+            and not self.resultado_salvo
+        ):
+            salvar_resultado(self.nome_jogador, self.pontuacao, self.tempo)
+            self.resultado_salvo = True
+            tela_final = TelaGanhou(self.pontuacao, self.tempo)
+            self.window.show_view(tela_final)
 
        
         
@@ -694,7 +810,16 @@ class TelaJogo(arcade.View):
 
 
     def on_key_release(self, key, modifiers):
-        if key == arcade.key.A or key == arcade.key.D or key == arcade.key.RIGHT or key == arcade.key.LEFT:
+        if key == arcade.key.A:
+            self.jogador.change_x = 0
+            self.jogador.texture = self.jogador.texture_parado
+        if key == arcade.key.D:
+            self.jogador.change_x = 0
+            self.jogador.texture = self.jogador.texture_parado
+        if key == arcade.key.LEFT:
+            self.jogador.change_x = 0
+            self.jogador.texture = self.jogador.texture_parado
+        if key == arcade.key.RIGHT:
             self.jogador.change_x = 0
             self.jogador.texture = self.jogador.texture_parado
 

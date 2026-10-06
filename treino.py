@@ -1,13 +1,30 @@
+
 from peewee import *
+import datetime
+db = SqliteDatabase("pontuacao.db")
+class BaseModel(Model):
+    class Meta:
+        database = db
+class Ranking(BaseModel):
+    nome_jogador = CharField
+    pontos = IntegerField
+    tempo_partida = FloatField
+    data_hora = DateTimeField(default=datetime.datetime.now)
 
-print("Conectando ao banco de dados...")
-banco = SqliteDatabase("treino.db")
-print("menu")
-print("1 - Cadastrar contato")
-print("2 - Ver todos os contatos")
-print("3 - Buscar contato pelo nome")
-print("4 - Editar contato pelo ID")
-print("5 - Excluir contato pelo ID")
-print("6 - Sair")
+    def mostrar_pontuacao(self,  self.pontuacao):
+        return (f"{self.pontos : self_pontuacao} pts ")
 
-pritn
+    def mostar_ranking(self):
+        return (f"{self.nome_jogador: self_nome_jogador} - "
+                        f"{self.pontos : self_pontos} pts "
+                        f"({self.tempo_partida: self_tempo_partida:.1f}s)")
+        
+        rank = Ranking.select()
+        for i in rank:
+            print(i)
+
+
+
+
+db.connect()
+db.create_tables([Ranking])
