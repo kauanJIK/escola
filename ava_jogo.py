@@ -112,36 +112,53 @@ def confBordas(objeto, rebater=False):
 
 #classe player
 class Player(arcade.Sprite):
+   # 3. Inicializa o Sprite com a primeira textura da lista (quadro 0)
     def __init__(self):
-        sheet = arcade.load_spritesheet("AnaGabriele.png")
-        quadros = sheet.get_texture_grid(
-            size=(332, 397),
-            columns=4,
-            count=8,
+        # 1. Carregar a folha de sprites
+        sheet_direita = arcade.load_spritesheet("Ana.png")
+
+        # 2. Extrair a grelha de texturas (10 quadros no total: 2 linhas, 5 colunas)
+        quadros = sheet_direita.get_texture_grid(
+            size=(199, 500),
+            columns=5,
+            count=10
         )
 
-        quadros_direita = quadros[:4]
-        quadros_esquerda = [frame.flip_left_right() for frame in quadros_direita]
+        # 3. Criar a lista de texturas invertidas para a esquerda
+        quadros_esquerda = []
+        for frame in quadros:
+            quadros_esquerda.append(frame.flip_left_right())
+        
+        # 4. Inicializar o sprite com a primeira textura (parado)
+        super().__init__(quadros[0], scale=0.3)
 
-        super().__init__(scale=0.2)
+        # 5. Mapeamento das poses para a direita e esquerda
+        self.texture_parado_d = quadros[0]
 
-        self.gravidade = GRAVIDADE
 
-        self.texture_parado_d = quadros_direita[0]
         self.texture_parado_e = quadros_esquerda[0]
-        self.texture_parado = self.texture_parado_d
+        self.passos_dano_d = [quadros[7], quadros[8], quadros[9]]
+        self.passos_dano_e = [quadros_esquerda[7], quadros_esquerda[8], quadros_esquerda[9]]
+        
+        self.tomando_dano: bool = False
+        self.tempo_dano: float = 0.0
+        # Passos (utiliza os quadros 1, 2 e 3 da primeira linha)
+        self.passos_direita = [quadros[1], quadros[2], quadros[3]]
+        self.passos_esquerda = [quadros_esquerda[1], quadros_esquerda[2], quadros_esquerda[3]]
 
-        self.passos_direita = quadros_direita[1:]
-        self.passos_esquerda = quadros_esquerda[1:]
+        # Pulo (utiliza o primeiro quadro da segunda linha, índice 5)
+        self.texture_pulo_d = quadros[5]
+        self.texture_pulo_e = quadros_esquerda[5]
 
-        self.texture_pulo_d = quadros_direita[-1]
-        self.texture_pulo_e = quadros_esquerda[-1]
-
+        # 6. Controladores de estado e animação
         self.quadro_atual: int = 0
         self.tempo_animacao: float = 0.0
         self.virado_para: str = "Direita"
         self.texture = self.texture_parado_d
-
+    def sofrer_dano(self):
+        self.tomando_dano = True
+        self.tempo_dano = 0.5  # Tempo em segundos que fica exibindo o dano
+        self.quadro_atual = 0
     def update(self, delta_time):
         if self.change_x > 0:
             self.virado_para = "Direita"
@@ -150,6 +167,7 @@ class Player(arcade.Sprite):
 
         confBordas(self, rebater=False)
 
+        # Se estiver a saltar (movimento vertical)
         if self.change_y != 0:
             if self.virado_para == "Direita":
                 self.texture = self.texture_pulo_d
@@ -157,17 +175,42 @@ class Player(arcade.Sprite):
                 self.texture = self.texture_pulo_e
             return
 
+        # Se estiver a andar horizontalmente
         if self.change_x != 0:
-            frames = self.passos_direita if self.virado_para == "Direita" else self.passos_esquerda
             self.tempo_animacao += delta_time
-            if self.tempo_animacao >= 0.12:
+            if self.tempo_animacao >= 0.1:
                 self.tempo_animacao = 0.0
-                self.quadro_atual = (self.quadro_atual + 1) % len(frames)
-            self.texture = frames[self.quadro_atual]
-            self.texture_parado = self.texture_parado_d if self.virado_para == "Direita" else self.texture_parado_e
+                self.quadro_atual = (self.quadro_atual + 1) % len(self.passos_direita)
+
+            if self.virado_para == "Direita":
+                self.texture = self.passos_direita[self.quadro_atual]
+            else:
+                self.texture = self.passos_esquerda[self.quadro_atual]
         else:
-            self.texture_parado = self.texture_parado_d if self.virado_para == "Direita" else self.texture_parado_e
-            self.texture = self.texture_parado
+            # Parado
+            self.quadro_atual = 0
+            self.tempo_animacao = 0.0
+            if self.virado_para == "Direita":
+                self.texture = self.texture_parado_d
+            else:
+                self.texture = self.texture_parado_e
+        if self.tomando_dano:
+            self.tempo_dano -= delta_time
+            if self.tempo_dano <= 0:
+                self.tomando_dano = False
+            
+            # Anima os quadros de dano rapidamente
+            self.tempo_animacao += delta_time
+            if self.tempo_animacao >= 0.1:
+                self.tempo_animacao = 0.0
+                self.quadro_atual = (self.quadro_atual + 1) % len(self.passos_dano_d)
+
+            if self.virado_para == "Direita":
+                self.texture = self.passos_dano_d[self.quadro_atual]
+            else:
+                self.texture = self.passos_dano_e[self.quadro_atual]
+            return        
+                
 
 
 class Moeda(arcade.Sprite):
@@ -718,6 +761,7 @@ class TelaJogo(arcade.View):
 
         for inimigo in npc_normal:
             self.pontuacao -= 1
+            self.jogador.sofrer_dano()  # <--- Ativa a animação de dano
             print("Colidiu com o professor!")
             self.mensagem = "TOCOU NO HOMEN PERDEU 1 PONTO!"
             self.tempo_mensagem = 1.5
@@ -725,12 +769,11 @@ class TelaJogo(arcade.View):
 
         for inimigo_especial in npc_especial:
             self.pontuacao -= 1
+            self.jogador.sofrer_dano()  # <--- Ativa a animação de dano
             print("Colidiu com o alien!")
-            
             self.mensagem = "TOCOU NO ET PERDEU 1 PONTO!"
             self.tempo_mensagem = 1.5
             self._reposicionar_sprite_seguro(inimigo_especial, distancia_minima=220)
-
         for bloco in moedas_direc:
             print("moeda colidiu")
             # Calcula penetração em cada lado do bloco
