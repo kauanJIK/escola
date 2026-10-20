@@ -1,7 +1,33 @@
+# ==============================================================================
+# QUESTÃO 3 (BANCO DE DADOS E PEEWEE ORM)
+# RESPOSTA DO ALUNO:
+# "A vantagem arquitetural de criar uma classe intermediária BaseModel que centraliza
+#  a configuração do banco de dados (Meta: database = db), em vez de repetir essa
+#  configuração de conexão em cada nova entidade ou tabela que o sistema venha a
+#  possuir é que isso é uma boa pratica desde que com essa criação eu só preciso
+#  fazer as classes herdas essa tabela que já vai ter o acesso as funcionalidade
+#  do SqliteDatabase. a implementação do método especial __str__ proporciona quando
+#  imprimimos ou inspecionamos uma instância da classe Pontuacao no console ou
+#  durante a depuração do código uma visualização limpa por exemplo print(p) com o
+#  str mostra os dados tudo de forma organizada e fluida já se não tivesse por exemplo
+#  sairia id = 1 isso é ineficiente e pouco intuitivo para as visualizações do codigo"
+# ==============================================================================
+
 import arcade
 import random
 import datetime
 from peewee import *
+
+
+# =========================================================================
+    # GERENCIAMENTO E MIGRAÇÃO DA TABELA (PONTUACAO)
+    # Bloco responsável por verificar a integridade do esquema do banco de dados.
+    # O comando PRAGMA table_info lê as colunas atuais da tabela. Caso alguma
+    # coluna essencial (como nome_jogador, pontos ou tempo_partida) esteja ausente
+    # em versões antigas do banco, o comando ALTER TABLE ADD COLUMN é executado
+    # dinamicamente para atualizar a estrutura sem perder dados existentes.
+    # =========================================================================
+
 
 db = SqliteDatabase("pontuacao.db")
 class BaseModel(Model):
@@ -28,6 +54,7 @@ class Pontuacao(BaseModel):
 def preparar_banco():
     db.connect(reuse_if_open=True)
     db.create_tables([Pontuacao])
+
     colunas = {
         linha[1]
         for linha in db.execute_sql("PRAGMA table_info(Pontuacao)").fetchall()
@@ -107,6 +134,18 @@ def confBordas(objeto, rebater=False):
             objeto.change_y *= -1
         else:
             objeto.change_y = 0
+
+# ==============================================================================
+# QUESTÃO 1 (FATIAMENTO DE SPRITESHEET E FLIP)
+# RESPOSTA DO ALUNO:
+# "esse codigo primeiro salvo a imagem no sheat_direita onde o quadros = sheet_direita.get_texture_grid
+#  pega a imagens e divide em grades size=(199, 500), sendo x e y das escalas e defini
+#  os numeros de colunas e count defenindo de maneira generira aqui onde dividimos a
+#  imagem separando as spritesheet e defenindo suas definição. Por que a criação de
+#  uma lista separada de texturas invertidas (quadros_esquerda) utilizando flip_left_right()
+#  é uma abordagem eficiente de POO e reaproveitamento de recursos visuais pois permite
+#  aproveitar o codigo da direita sem precisar refazelo para a esquerda"
+# ==============================================================================
 
 #classe player
 class Player(arcade.Sprite):
@@ -387,6 +426,23 @@ class TelaMenu(arcade.View):
                 if caractere.isalnum() or caractere == " "
             )
             self.nome_jogador = (self.nome_jogador + caracteres_validos)[:20]
+
+# ==============================================================================
+# QUESTÃO 4 (TELA DE RANKING E DESEMPENHO NO ON_DRAW)
+# RESPOSTA DO ALUNO:
+# "é uma regra fundamental de desempenho e boas práticas na arquitetura de jogos
+#  com Arcade realizar a consulta ao banco de dados (obter_top10()) dentro do método
+#  construtor __init__ da TelaPontuacao, em vez de executar essa mesma consulta
+#  a cada ciclo dentro do método de renderização on_draw já que o ondraw é o
+#  responsavel por atualizar o jogo 60 frames por s, então colocar a consulta dentro
+#  dele faz ter uma atualização desnecessaria continuamente no init é atualizado 1
+#  vez ao rodar. a utilização da função enumerate() em conjunto com o cálculo
+#  matemático aplicado na coordenada vertical (470 - (posicao - 1) * 35) viabiliza
+#  a exibição organizada e dinâmica dos elementos do ranking na tela pois serve para
+#  enumerar e as cordenadas matematicass implementadas visa fazer que as pontuação
+#  tenha uma certa ordem de aparição sem isso poderia aparecer tudo no msm local
+#  sendo ineficaz para a realidade do jogo e a perspectiva de um placar"
+# ==============================================================================
 
 class TelaPontuacao(arcade.View):
     def __init__(self):
@@ -706,6 +762,19 @@ class TelaJogo(arcade.View):
         
         self.sprite_moeda_especial.append(self.moeda_especial)
 
+# ==============================================================================
+# QUESTÃO 2 (MOTOR DE FÍSICA E PULO COM CAN_JUMP)
+# RESPOSTA DO ALUNO:
+# "a responsabilidade prática desse motor de física ao interagir com o self.jogador
+#  e a lista self.sprite_blocos e que o self.jogador é o que vai interagir com o
+#  bloco então ele que vai sofrer a fisica do bloco e o self.sprite_blocos no
+#  walls(parede) e definimos onde vai pegar a face do bloco que nesse casa ta na
+#  sprite_blocos e o gravity_constant=GRAVIDADE que coloca a gravidade que defini
+#  em etapa anterior ao codigo. a verificação self.engine_fisica.can_jump() nesse
+#  contexto de mecânica de plataforma serve para que não haja pulo duplo permitindo
+#  pular somente quando está no chão ou em superficies que tenha ficica como os blocos add"
+# ==============================================================================
+
         self.engine_fisica  = arcade.PhysicsEnginePlatformer(
             player_sprite=self.jogador,
             walls=self.sprite_blocos,
@@ -740,6 +809,20 @@ class TelaJogo(arcade.View):
 
 
         
+
+# ==============================================================================
+# QUESTÃO 5 (CHECK_FOR_COLLISION_WITH_LIST E REMOVE_FROM_SPRITE_LISTS)
+# RESPOSTA DO ALUNO:
+# "a função arcade.check_for_collision_with_list() realiza exatamente ao comparar
+#  o objeto self.jogador com a lista self.sprite_moedas
+#  ela serve como o indentificador para que quando o player tocar na moeda o for
+#  moeda in moedas_colididas je assionado eliminando a moeda e somando o placar e
+#  printando na tela.
+#  a chamada do método moeda.remove_from_sprite_lists() é essencial logo após a
+#  detecção da colisão, tanto para a lógica do jogo quanto para o controle do
+#  término da partida visando que ele só é assionado quando o player tocar na moeda
+#  então só é eliminado se o player interagir"
+# ==============================================================================
 
     def on_update(self,delta_time):
         self.engine_fisica.update()
@@ -876,8 +959,11 @@ def executar():
     menu_inicial = TelaMenu()
     janela.show_view(menu_inicial)
     arcade.run()
+
+
+    
     
     
 
 if __name__ == "__main__":
-    executar() 
+    executar()
