@@ -162,6 +162,10 @@ class AplicativoBetEducativo:
         self.iniciar_tela_jogo()
 
     def iniciar_tela_jogo(self):
+        # Validação de segurança: a aposta nunca pode ser maior que o saldo atual
+        if self.aposta_atual > self.saldo:
+            self.aposta_atual = self.saldo if self.saldo >= 10.0 else max(0.0, self.saldo)
+
         self.limpar_tela()
         self.root.config(bg="#1e1e2e")
 
@@ -218,6 +222,10 @@ class AplicativoBetEducativo:
             self.oferecer_emprestimo_ou_falencia()
             return
 
+        # Garante que nunca aposta mais do que tem no saldo atual
+        if self.aposta_atual > self.saldo:
+            self.aposta_atual = self.saldo
+
         self.rodada_atual += 1
         self.rodando = True
         self.multiplicador = 1.0
@@ -265,6 +273,11 @@ class AplicativoBetEducativo:
 
             self.lbl_multiplicador.config(text="CRASH! QUEBROU!", fg="#f38ba8")
             self.lbl_status.config(text=f"Queda brusca! Perda total da aposta para a banca.", fg="#f38ba8")
+            
+            # Ajusta automaticamente a aposta se o saldo diminuiu após a perda
+            if self.aposta_atual > self.saldo:
+                self.aposta_atual = 10.0 if self.saldo >= 10.0 else max(0.0, self.saldo)
+
             self.atualizar_interface_jogo()
             
             if self.saldo <= 0:
@@ -299,6 +312,11 @@ class AplicativoBetEducativo:
 
         self.lbl_multiplicador.config(text=f"RESGATADO! {self.multiplicador:.2f}x", fg="#a6e3a1")
         self.lbl_status.config(text=f"Sucesso! Taxa da Bet retida (35%): R$ {comissao_casa:.2f}", fg="#a6e3a1")
+        
+        # Garante que a aposta nunca ultrapasse o novo saldo obtido
+        if self.aposta_atual > self.saldo:
+            self.aposta_atual = 10.0 if self.saldo >= 10.0 else self.saldo
+
         self.atualizar_interface_jogo()
 
         if self.rodada_atual >= self.total_rodadas_meta:
@@ -319,6 +337,7 @@ class AplicativoBetEducativo:
         if aceitou_emprestimo:
             self.saldo += 50.0
             self.divida_acumulada += 60.0  
+            self.aposta_atual = 10.0  # Reseta a aposta para o padrão seguro após o empréstimo
             messagebox.showinfo("Crédito Concedido", "Empréstimo aprovado instantaneamente! Sua dívida cresceu, mas você pode voltar a apostar.")
             self.atualizar_interface_jogo()
         else:
@@ -336,7 +355,7 @@ class AplicativoBetEducativo:
     def aumentar_aposta(self):
         self.aposta_atual += 10.0
         if self.aposta_atual > self.saldo:
-            self.aposta_atual = self.saldo if self.saldo > 0 else 0.0
+            self.aposta_atual = self.saldo
         self.lbl_aposta_info.config(text=f"Aposta Atual: R$ {self.aposta_atual:.2f}")
 
     def diminuir_aposta(self):
@@ -346,6 +365,10 @@ class AplicativoBetEducativo:
         self.lbl_aposta_info.config(text=f"Aposta Atual: R$ {self.aposta_atual:.2f}")
 
     def atualizar_interface_jogo(self):
+        # Validação extra de segurança ao atualizar a interface
+        if self.aposta_atual > self.saldo:
+            self.aposta_atual = 10.0 if self.saldo >= 10.0 else max(0.0, self.saldo)
+
         self.lbl_saldo.config(text=f"Saldo: R$ {self.saldo:.2f}")
         self.lbl_rodadas.config(text=f"Rodada: {self.rodada_atual} / {self.total_rodadas_meta} obrigatórias")
         self.lbl_aposta_info.config(text=f"Aposta Atual: R$ {self.aposta_atual:.2f}")
@@ -381,10 +404,8 @@ class AplicativoBetEducativo:
         tk.Button(self.root, text="Salvar no Placar e Voltar ao Menu", font=("Arial", 12, "bold"), bg="#89b4fa", fg="#11111b", width=30, pady=8, command=self.salvar_e_voltar_menu).pack(pady=15)
 
     def salvar_e_voltar_menu(self):
-        # Salva o saldo, a dívida e o patrimônio líquido (saldo - dívida) para a ordenação correta
         patrimonio_liquido = self.saldo - self.divida_acumulada
         
-        # Se a equipe já existir no placar, substitui o registro; se for nova, adiciona
         equipe_existente = False
         for item in self.ranking_turma:
             if item["equipe"] == self.nome_equipe:
@@ -413,7 +434,6 @@ class AplicativoBetEducativo:
         frame_ranking = tk.Frame(self.root, bg="#11111b", bd=3, relief="solid")
         frame_ranking.pack(pady=15, fill="both", expand=True, padx=80)
 
-        # ORDENAÇÃO: Maior Patrimônio Líquido (Saldo - Dívida) fica no topo
         ranking_ordenado = sorted(self.ranking_turma, key=lambda x: x["patrimonio_liquido"], reverse=True)
 
         if not ranking_ordenado:
