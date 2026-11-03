@@ -1,99 +1,8 @@
-# ==============================================================================
-# QUESTÃO 3 (BANCO DE DADOS E PEEWEE ORM)
-# RESPOSTA DO ALUNO:
-# "A vantagem arquitetural de criar uma classe intermediária BaseModel que centraliza
-#  a configuração do banco de dados (Meta: database = db), em vez de repetir essa
-#  configuração de conexão em cada nova entidade ou tabela que o sistema venha a
-#  possuir é que isso é uma boa pratica desde que com essa criação eu só preciso
-#  fazer as classes herdas essa tabela que já vai ter o acesso as funcionalidade
-#  do SqliteDatabase. a implementação do método especial __str__ proporciona quando
-#  imprimimos ou inspecionamos uma instância da classe Pontuacao no console ou
-#  durante a depuração do código uma visualização limpa por exemplo print(p) com o
-#  str mostra os dados tudo de forma organizada e fluida já se não tivesse por exemplo
-#  sairia id = 1 isso é ineficiente e pouco intuitivo para as visualizações do codigo"
-# ==============================================================================
+
 
 import arcade
 import random
-import datetime
-from peewee import *
-
-
-# =========================================================================
-    # GERENCIAMENTO E MIGRAÇÃO DA TABELA (PONTUACAO)
-    # Bloco responsável por verificar a integridade do esquema do banco de dados.
-    # O comando PRAGMA table_info lê as colunas atuais da tabela. Caso alguma
-    # coluna essencial (como nome_jogador, pontos ou tempo_partida) esteja ausente
-    # em versões antigas do banco, o comando ALTER TABLE ADD COLUMN é executado
-    # dinamicamente para atualizar a estrutura sem perder dados existentes.
-    # =========================================================================
-
-
-db = SqliteDatabase("pontuacao.db")
-class BaseModel(Model):
-    class Meta:
-        database = db
-class Pontuacao(BaseModel):
-    nome_jogador = CharField()
-    pontos = IntegerField()
-    tempo_partida = FloatField()
-    data_hora = DateTimeField(default=datetime.datetime.now)
-    
-    def __str__(self):
-        return (
-            f"{self.nome_jogador} - {self.pontos} pts "
-            f"({self.tempo_partida:.1f}s)"
-        )
-
-    
-
-        
-
-
-
-def preparar_banco():
-    db.connect(reuse_if_open=True)
-    db.create_tables([Pontuacao])
-
-    colunas = {
-        linha[1]
-        for linha in db.execute_sql("PRAGMA table_info(Pontuacao)").fetchall()
-    }
-    if "nome_jogador" not in colunas:
-        db.execute_sql(
-            "ALTER TABLE Pontuacao ADD COLUMN "
-            "nome_jogador VARCHAR NOT NULL DEFAULT 'Jogador'"
-        )
-    if "pontos" not in colunas:
-        db.execute_sql(
-            "ALTER TABLE Pontuacao ADD COLUMN pontos INTEGER NOT NULL DEFAULT 0"
-        )
-    if "tempo_partida" not in colunas:
-        db.execute_sql(
-            "ALTER TABLE Pontuacao ADD COLUMN tempo_partida "
-            "REAL NOT NULL DEFAULT 0"
-        )
-
-
-def salvar_resultado(nome_jogador, pontos, tempo_partida):
-    preparar_banco()
-    Pontuacao.create(
-        nome_jogador=nome_jogador,
-        pontos=pontos,
-        tempo_partida=tempo_partida,
-    )
-
-
-def obter_top10():
-    preparar_banco()
-    consulta = (
-        Pontuacao.select()
-        .order_by(Pontuacao.pontos.desc(), Pontuacao.tempo_partida.asc())
-        .limit(10)
-    )
-    return list(consulta)
-
-
+from AlunoFimTrimestre import buscar_top10, inicializar_banco, salvar_resultado
 
 #Definido Altura e Largura e Titulo da tela do jogo
 ALTURA = 600
@@ -134,18 +43,6 @@ def confBordas(objeto, rebater=False):
             objeto.change_y *= -1
         else:
             objeto.change_y = 0
-
-# ==============================================================================
-# QUESTÃO 1 (FATIAMENTO DE SPRITESHEET E FLIP)
-# RESPOSTA DO ALUNO:
-# "esse codigo primeiro salvo a imagem no sheat_direita onde o quadros = sheet_direita.get_texture_grid
-#  pega a imagens e divide em grades size=(199, 500), sendo x e y das escalas e defini
-#  os numeros de colunas e count defenindo de maneira generira aqui onde dividimos a
-#  imagem separando as spritesheet e defenindo suas definição. Por que a criação de
-#  uma lista separada de texturas invertidas (quadros_esquerda) utilizando flip_left_right()
-#  é uma abordagem eficiente de POO e reaproveitamento de recursos visuais pois permite
-#  aproveitar o codigo da direita sem precisar refazelo para a esquerda"
-# ==============================================================================
 
 #classe player
 class Player(arcade.Sprite):
@@ -396,8 +293,8 @@ class TelaMenu(arcade.View):
             return
 
         if key == arcade.key.R:
-            tela_Pontuacao = TelaPontuacao()
-            self.window.show_view(tela_Pontuacao)
+            tela_ranking = TelaRanking()
+            self.window.show_view(tela_ranking)
         if key == arcade.key.I:
             tela_instrucao = TelaInstrucao()
             self.window.show_view(tela_instrucao)
@@ -427,24 +324,8 @@ class TelaMenu(arcade.View):
             )
             self.nome_jogador = (self.nome_jogador + caracteres_validos)[:20]
 
-# ==============================================================================
-# QUESTÃO 4 (TELA DE RANKING E DESEMPENHO NO ON_DRAW)
-# RESPOSTA DO ALUNO:
-# "é uma regra fundamental de desempenho e boas práticas na arquitetura de jogos
-#  com Arcade realizar a consulta ao banco de dados (obter_top10()) dentro do método
-#  construtor __init__ da TelaPontuacao, em vez de executar essa mesma consulta
-#  a cada ciclo dentro do método de renderização on_draw já que o ondraw é o
-#  responsavel por atualizar o jogo 60 frames por s, então colocar a consulta dentro
-#  dele faz ter uma atualização desnecessaria continuamente no init é atualizado 1
-#  vez ao rodar. a utilização da função enumerate() em conjunto com o cálculo
-#  matemático aplicado na coordenada vertical (470 - (posicao - 1) * 35) viabiliza
-#  a exibição organizada e dinâmica dos elementos do ranking na tela pois serve para
-#  enumerar e as cordenadas matematicass implementadas visa fazer que as pontuação
-#  tenha uma certa ordem de aparição sem isso poderia aparecer tudo no msm local
-#  sendo ineficaz para a realidade do jogo e a perspectiva de um placar"
-# ==============================================================================
 
-class TelaPontuacao(arcade.View):
+class TelaRanking(arcade.View):
     def __init__(self):
         super().__init__()
         arcade.set_background_color(arcade.color.WHITE)
@@ -455,7 +336,7 @@ class TelaPontuacao(arcade.View):
         self.cenario_sprite.center_y = ALTURA / 2
         self.sprite_cenario = arcade.SpriteList()
         self.sprite_cenario.append(self.cenario_sprite)
-        self.Pontuacao = obter_top10()
+        self.melhores = buscar_top10()
         
 
     def on_draw(self):
@@ -466,10 +347,10 @@ class TelaPontuacao(arcade.View):
         arcade.draw_text("[J] PARA JOGAR", 100, 100, arcade.color.BLACK, 12)
 
 
-        if not self.Pontuacao:
+        if not self.melhores:
             arcade.draw_text("Ainda nao ha partidas", 270, 470, arcade.color.BLACK, 16)
         else:
-            for posicao, resultado in enumerate(self.Pontuacao, start=1):
+            for posicao, resultado in enumerate(self.melhores, start=1):
                 texto = (
                     f"{posicao}. {resultado.nome_jogador} - "
                     f"{resultado.pontos} pts - "
@@ -617,10 +498,12 @@ class TelaSobre(arcade.View):
 
 
 class TelaGanhou(arcade.View):
-    def __init__(self, pontuacao, tempo):
+    def __init__(self, pontuacao, tempo, nome_jogador=""):
         super().__init__()
         self.pontuacao = pontuacao
         self.tempo = tempo
+        self.nome_jogador = nome_jogador[:20]
+        self.resultado_salvo = False
         arcade.set_background_color(arcade.color.PURPLE)
         self.cenario_sprite = arcade.Sprite("Parabens.jpeg") 
         self.cenario_sprite.width = LARGURA
@@ -640,20 +523,55 @@ class TelaGanhou(arcade.View):
 
         arcade.draw_text(f"PONTUAÇÃO {self.pontuacao}",145 ,300, arcade.color.BLACK, 50)
         arcade.draw_text(f"TEMPO {self.tempo:.1f}s",320 ,200, arcade.color.BLACK, 20)
-        arcade.draw_text(f"MENU: ESC",690,570,arcade.color.BLACK,14)
+        arcade.draw_text("CONFIRME OU EDITE SEU NOME", 255, 135, arcade.color.BLACK, 16)
+        arcade.draw_text(self.nome_jogador + "_", 340, 105, arcade.color.BLACK, 18)
+        if self.resultado_salvo:
+            arcade.draw_text("PONTUACAO SALVA", 325, 65, arcade.color.BLACK, 14)
+        else:
+            arcade.draw_text("ENTER: SALVAR", 325, 65, arcade.color.BLACK, 14)
+        arcade.draw_text("R: RANKING | ESC: MENU", 620, 570, arcade.color.BLACK, 12)
 
-            
-        
-        
     def on_key_press(self, key, modifiers):
+        if not self.resultado_salvo:
+            if key == arcade.key.BACKSPACE:
+                self.nome_jogador = self.nome_jogador[:-1]
+                return
+            if key == arcade.key.ENTER:
+                self._salvar_resultado()
+                return
+
+        if key == arcade.key.R:
+            self._salvar_resultado()
+            self.window.show_view(TelaRanking())
+            return
         if key == arcade.key.ESCAPE:
+            self._salvar_resultado()
             tela_menu = TelaMenu()
             self.window.show_view(tela_menu)
+
+    def on_text(self, texto):
+        if not self.resultado_salvo:
+            caracteres_validos = "".join(
+                caractere for caractere in texto
+                if caractere.isalnum() or caractere == " "
+            )
+            self.nome_jogador = (self.nome_jogador + caracteres_validos)[:20]
+
+    def _salvar_resultado(self):
+        if self.resultado_salvo:
+            return
+        self.nome_jogador = self.nome_jogador.strip() or "Jogador"
+        salvar_resultado(self.nome_jogador, self.pontuacao, self.tempo)
+        self.resultado_salvo = True
 
 
     
 
 class TelaJogo(arcade.View):
+    def _iniciar_efeito_colisao(self):
+        self.tempo_tremor = 0.32
+        self.tempo_flash = 0.2
+
     def _reposicionar_sprite_seguro(self, sprite, distancia_minima=250, margem=40):
         for _ in range(200):
             x = random.randint(margem, LARGURA - margem)
@@ -677,7 +595,11 @@ class TelaJogo(arcade.View):
         arcade.set_background_color(arcade.color.WHITE)
         
         self.pontuacao = 0
-        self.resultado_salvo = False
+        self.camera = arcade.Camera2D(position=(LARGURA / 2, ALTURA / 2))
+        self.tempo_tremor = 0.0
+        self.tempo_flash = 0.0
+        self.deslocamento_camera_x = 0.0
+        self.deslocamento_camera_y = 0.0
         self.velocidade = 3
         self.tempo = 0
         self.mensagem = ""
@@ -762,18 +684,6 @@ class TelaJogo(arcade.View):
         
         self.sprite_moeda_especial.append(self.moeda_especial)
 
-# ==============================================================================
-# QUESTÃO 2 (MOTOR DE FÍSICA E PULO COM CAN_JUMP)
-# RESPOSTA DO ALUNO:
-# "a responsabilidade prática desse motor de física ao interagir com o self.jogador
-#  e a lista self.sprite_blocos e que o self.jogador é o que vai interagir com o
-#  bloco então ele que vai sofrer a fisica do bloco e o self.sprite_blocos no
-#  walls(parede) e definimos onde vai pegar a face do bloco que nesse casa ta na
-#  sprite_blocos e o gravity_constant=GRAVIDADE que coloca a gravidade que defini
-#  em etapa anterior ao codigo. a verificação self.engine_fisica.can_jump() nesse
-#  contexto de mecânica de plataforma serve para que não haja pulo duplo permitindo
-#  pular somente quando está no chão ou em superficies que tenha ficica como os blocos add"
-# ==============================================================================
 
         self.engine_fisica  = arcade.PhysicsEnginePlatformer(
             player_sprite=self.jogador,
@@ -790,6 +700,11 @@ class TelaJogo(arcade.View):
        
     def on_draw(self):
         self.clear()
+        self.camera.position = (
+            LARGURA / 2 - self.deslocamento_camera_x,
+            ALTURA / 2 - self.deslocamento_camera_y,
+        )
+        self.camera.use()
         self.sprite_cenario.draw()
         self.sprite_blocos.draw()
 
@@ -798,6 +713,15 @@ class TelaJogo(arcade.View):
         self.sprite_moeda_especial.draw()
         self.sprite_jogador.draw()
         self.sprite_inimigo_especial.draw()
+        if self.tempo_flash > 0:
+            alpha = int(125 * self.tempo_flash / 0.2)
+            arcade.draw_lrbt_rectangle_filled(
+                -16,
+                LARGURA + 16,
+                -16,
+                ALTURA + 16,
+                (255, 0, 0, alpha),
+            )
         arcade.draw_text(f"{self.nome_jogador} | Pontos Coletados: {self.pontuacao}", 10, 570,arcade.color.BLACK, 14)
         arcade.draw_text(f"Tempo: {self.tempo:.1f}s",10,545,arcade.color.BLACK,14)
         arcade.draw_text(f"SAIR: ESC",700,570,arcade.color.BLACK,14)
@@ -807,22 +731,6 @@ class TelaJogo(arcade.View):
         
 
 
-
-        
-
-# ==============================================================================
-# QUESTÃO 5 (CHECK_FOR_COLLISION_WITH_LIST E REMOVE_FROM_SPRITE_LISTS)
-# RESPOSTA DO ALUNO:
-# "a função arcade.check_for_collision_with_list() realiza exatamente ao comparar
-#  o objeto self.jogador com a lista self.sprite_moedas
-#  ela serve como o indentificador para que quando o player tocar na moeda o for
-#  moeda in moedas_colididas je assionado eliminando a moeda e somando o placar e
-#  printando na tela.
-#  a chamada do método moeda.remove_from_sprite_lists() é essencial logo após a
-#  detecção da colisão, tanto para a lógica do jogo quanto para o controle do
-#  término da partida visando que ele só é assionado quando o player tocar na moeda
-#  então só é eliminado se o player interagir"
-# ==============================================================================
 
     def on_update(self,delta_time):
         self.engine_fisica.update()
@@ -837,6 +745,15 @@ class TelaJogo(arcade.View):
         self.tempo += delta_time
         if self.tempo_mensagem > 0:
             self.tempo_mensagem -= delta_time
+        self.tempo_tremor = max(0, self.tempo_tremor - delta_time)
+        self.tempo_flash = max(0, self.tempo_flash - delta_time)
+        if self.tempo_tremor > 0:
+            intensidade = 8 * self.tempo_tremor / 0.32
+            self.deslocamento_camera_x = random.uniform(-intensidade, intensidade)
+            self.deslocamento_camera_y = random.uniform(-intensidade, intensidade)
+        else:
+            self.deslocamento_camera_x = 0.0
+            self.deslocamento_camera_y = 0.0
 
         moedas_colididas = arcade.check_for_collision_with_list(self.jogador,self.sprite_moedas)
         moeda_especial_colidida = arcade.check_for_collision_with_list(self.jogador,self.sprite_moeda_especial)
@@ -847,6 +764,7 @@ class TelaJogo(arcade.View):
 
         for inimigo in npc_normal:
             self.pontuacao -= 1
+            self._iniciar_efeito_colisao()
             self.jogador.sofrer_dano()  # <--- Ativa a animação de dano
             print("Colidiu com o professor!")
             self.mensagem = "TOCOU NO HOMEN PERDEU 1 PONTO!"
@@ -855,6 +773,7 @@ class TelaJogo(arcade.View):
 
         for inimigo_especial in npc_especial:
             self.pontuacao -= 1
+            self._iniciar_efeito_colisao()
             self.jogador.sofrer_dano()  # <--- Ativa a animação de dano
             print("Colidiu com o alien!")
             self.mensagem = "TOCOU NO ET PERDEU 1 PONTO!"
@@ -906,14 +825,12 @@ class TelaJogo(arcade.View):
             print(self.pontuacao)
 
         
-        if (
-            len(self.sprite_moeda_especial) == 0
-            and len(self.sprite_moedas) == 0
-            and not self.resultado_salvo
-        ):
-            salvar_resultado(self.nome_jogador, self.pontuacao, self.tempo)
-            self.resultado_salvo = True
-            tela_final = TelaGanhou(self.pontuacao, self.tempo)
+        if len(self.sprite_moeda_especial) == 0 and len(self.sprite_moedas) == 0:
+            tela_final = TelaGanhou(
+                self.pontuacao,
+                self.tempo,
+                self.nome_jogador,
+            )
             self.window.show_view(tela_final)
 
        
@@ -955,6 +872,7 @@ class TelaJogo(arcade.View):
 
 
 def executar():
+    inicializar_banco()
     janela = arcade.Window(LARGURA,ALTURA,TITULO)
     menu_inicial = TelaMenu()
     janela.show_view(menu_inicial)
