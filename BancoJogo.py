@@ -46,6 +46,11 @@ def salvar_resultado(nome_jogador, pontos, tempo_partida):
     )
 
 
+def limpar_pontuacoes():
+    inicializar_banco()
+    return Pontuacao.delete().execute()
+
+
 def buscar_top10():
     """Retorna as 10 maiores pontuações; empates favorecem menor tempo."""
     consulta = (
