@@ -22,6 +22,16 @@ INTERVALO_MIN_SORTE = 12.0
 INTERVALO_MAX_SORTE = 22.0
 PRIMEIRA_SORTE_MIN = 4.0
 PRIMEIRA_SORTE_MAX = 7.0
+MULTIPLICADORES_DIFICULDADE = {
+    "facil": 0.65,
+    "medio": 1.0,
+    "hard": 1.6,
+}
+NOMES_DIFICULDADE = {
+    "facil": "FÁCIL",
+    "medio": "MÉDIO",
+    "hard": "HARD",
+}
 
 
 def normalizar_vidas(vidas, quantidade_jogadores):
@@ -437,10 +447,10 @@ class TelaMenu(arcade.View):
 
 
 class TelaModoJogo(arcade.View):
-    def __init__(self, nome_jogador):
+    def __init__(self, nome_jogador, quantidade_jogadores=1):
         super().__init__()
         self.nome_jogador = nome_jogador
-        self.quantidade_jogadores = 1
+        self.quantidade_jogadores = quantidade_jogadores
         self.cenario = arcade.Sprite("menu.jpg")
         self.cenario.width = LARGURA
         self.cenario.height = ALTURA
@@ -488,15 +498,103 @@ class TelaModoJogo(arcade.View):
             self.quantidade_jogadores = 3 - self.quantidade_jogadores
         elif key == arcade.key.ENTER:
             self.window.show_view(
-                TelaSelecaoPersonagens(self.nome_jogador, self.quantidade_jogadores)
+                TelaDificuldadeJogo(self.nome_jogador, self.quantidade_jogadores)
             )
 
 
-class TelaSelecaoPersonagens(arcade.View):
+class TelaDificuldadeJogo(arcade.View):
     def __init__(self, nome_jogador, quantidade_jogadores):
         super().__init__()
         self.nome_jogador = nome_jogador
         self.quantidade_jogadores = quantidade_jogadores
+        self.opcoes = ("facil", "medio", "hard")
+        self.indice_dificuldade = 1
+        self.cenario = arcade.Sprite("menu.jpg")
+        self.cenario.width = LARGURA
+        self.cenario.height = ALTURA
+        self.cenario.center_x = LARGURA / 2
+        self.cenario.center_y = ALTURA / 2
+        self.sprite_cenario = arcade.SpriteList()
+        self.sprite_cenario.append(self.cenario)
+
+    def on_draw(self):
+        self.clear()
+        self.sprite_cenario.draw()
+        arcade.draw_lrbt_rectangle_filled(140, 660, 125, 450, (0, 0, 0, 180))
+        arcade.draw_text(
+            "ESCOLHA A DIFICULDADE",
+            LARGURA / 2,
+            395,
+            arcade.color.WHITE,
+            28,
+            anchor_x="center",
+        )
+        descricoes = {
+            "facil": "Inimigos mais lentos",
+            "medio": "Velocidade normal",
+            "hard": "Inimigos muito rápidos",
+        }
+        for indice, dificuldade in enumerate(self.opcoes):
+            cor = (
+                arcade.color.YELLOW
+                if indice == self.indice_dificuldade
+                else arcade.color.WHITE
+            )
+            y = 335 - indice * 55
+            arcade.draw_text(
+                NOMES_DIFICULDADE[dificuldade],
+                LARGURA / 2,
+                y,
+                cor,
+                22,
+                anchor_x="center",
+            )
+            arcade.draw_text(
+                descricoes[dificuldade],
+                LARGURA / 2,
+                y - 22,
+                arcade.color.WHITE,
+                12,
+                anchor_x="center",
+            )
+        arcade.draw_text(
+            "SETAS: ESCOLHER   |   ENTER: CONTINUAR   |   ESC: VOLTAR",
+            LARGURA / 2,
+            145,
+            arcade.color.WHITE,
+            12,
+            anchor_x="center",
+        )
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.ESCAPE:
+            self.window.show_view(
+                TelaModoJogo(self.nome_jogador, self.quantidade_jogadores)
+            )
+        elif key in (arcade.key.UP, arcade.key.LEFT):
+            self.indice_dificuldade = (
+                self.indice_dificuldade - 1
+            ) % len(self.opcoes)
+        elif key in (arcade.key.DOWN, arcade.key.RIGHT):
+            self.indice_dificuldade = (
+                self.indice_dificuldade + 1
+            ) % len(self.opcoes)
+        elif key == arcade.key.ENTER:
+            self.window.show_view(
+                TelaSelecaoPersonagens(
+                    self.nome_jogador,
+                    self.quantidade_jogadores,
+                    self.opcoes[self.indice_dificuldade],
+                )
+            )
+
+
+class TelaSelecaoPersonagens(arcade.View):
+    def __init__(self, nome_jogador, quantidade_jogadores, dificuldade="medio"):
+        super().__init__()
+        self.nome_jogador = nome_jogador
+        self.quantidade_jogadores = quantidade_jogadores
+        self.dificuldade = dificuldade
         self.selecoes = ["mulher", "homem"]
         self.cenario = arcade.Sprite("menu.jpg")
         self.cenario.width = LARGURA
@@ -592,6 +690,7 @@ class TelaSelecaoPersonagens(arcade.View):
                     self.nome_jogador,
                     1,
                     personagens=tuple(self.selecoes[:self.quantidade_jogadores]),
+                    dificuldade=self.dificuldade,
                 )
             )
 
@@ -607,31 +706,61 @@ class TelaRanking(arcade.View):
         self.cenario_sprite.center_y = ALTURA / 2
         self.sprite_cenario = arcade.SpriteList()
         self.sprite_cenario.append(self.cenario_sprite)
-        self.melhores = buscar_top10()
+        self.melhores_solo = buscar_top10("solo")
+        self.melhores_cooperativo = buscar_top10("cooperativo")
         
 
     def on_draw(self):
         self.clear()
         self.sprite_cenario.draw()
         arcade.draw_text("TOP 10", 330, 550, arcade.color.BLACK, 24)
+        arcade.draw_text(
+            "1 JOGADOR",
+            200,
+            505,
+            arcade.color.BLACK,
+            16,
+            anchor_x="center",
+        )
+        arcade.draw_text(
+            "2 JOGADORES",
+            600,
+            505,
+            arcade.color.BLACK,
+            16,
+            anchor_x="center",
+        )
+        arcade.draw_line(390, 160, 390, 485, arcade.color.LIGHT_GRAY, 1)
         arcade.draw_text("[ESC] PARA MENU", 100, 120, arcade.color.BLACK, 12)
         arcade.draw_text("[J] PARA JOGAR", 100, 100, arcade.color.BLACK, 12)
 
-        if not self.melhores:
-            arcade.draw_text("Ainda nao ha partidas", 270, 470, arcade.color.BLACK, 16)
-        else:
-            for posicao, resultado in enumerate(self.melhores, start=1):
+        for centro_x, x, melhores in (
+            (200, 120, self.melhores_solo),
+            (600, 470, self.melhores_cooperativo),
+        ):
+            if not melhores:
+                arcade.draw_text(
+                    "Sem partidas",
+                    centro_x,
+                    426,
+                    arcade.color.BLACK,
+                    14,
+                    anchor_x="center",
+                )
+                continue
+            for posicao, resultado in enumerate(melhores, start=1):
                 texto = (
-                    f"{posicao}. {resultado.nome_jogador} - "
-                    f"{resultado.pontos} pts - "
+                    f"{posicao}. {resultado.nome_jogador[:12]} | "
+                    f"{resultado.pontos} pts | "
+                    f"{NOMES_DIFICULDADE[resultado.dificuldade]} | "
                     f"{resultado.tempo_partida:.1f}s"
                 )
                 arcade.draw_text(
                     texto,
-                    120,
-                    470 - (posicao - 1) * 35,
+                    x,
+                    465 - (posicao - 1) * 30,
                     arcade.color.BLACK,
-                    16,
+                    11,
                 )
 
     def on_key_press(self, key, modifiers):
@@ -639,7 +768,7 @@ class TelaRanking(arcade.View):
             tela_menu = TelaMenu()
             self.window.show_view(tela_menu)
         if key == arcade.key.J:
-            self.window.show_view(TelaSelecaoPersonagens("Jogador", 1))
+            self.window.show_view(TelaModoJogo("Jogador"))
         
 class TelaInstrucao(arcade.View):
     def __init__(self):
@@ -810,12 +939,22 @@ class TelaSobre(arcade.View):
 
 
 class TelaGanhou(arcade.View):
-    def __init__(self, pontuacao, tempo, nome_jogador="", venceu=True):
+    def __init__(
+        self,
+        pontuacao,
+        tempo,
+        nome_jogador="",
+        venceu=True,
+        modo_jogo="solo",
+        dificuldade="medio",
+    ):
         super().__init__()
         self.pontuacao = pontuacao
         self.tempo = tempo
         self.nome_jogador = nome_jogador[:20]
         self.venceu = venceu
+        self.modo_jogo = modo_jogo
+        self.dificuldade = dificuldade
         self.resultado_salvo = False
         arcade.set_background_color(arcade.color.PURPLE)
         self.cenario_sprite = arcade.Sprite("Parabens.jpeg") 
@@ -839,6 +978,15 @@ class TelaGanhou(arcade.View):
 
         arcade.draw_text(f"PONTUAÇÃO {self.pontuacao}",145 ,300, arcade.color.BLACK, 50)
         arcade.draw_text(f"TEMPO {self.tempo:.1f}s",320 ,200, arcade.color.BLACK, 20)
+        modo_texto = "2 JOGADORES" if self.modo_jogo == "cooperativo" else "1 JOGADOR"
+        arcade.draw_text(
+            f"{modo_texto} | {NOMES_DIFICULDADE[self.dificuldade]}",
+            400,
+            170,
+            arcade.color.BLACK,
+            14,
+            anchor_x="center",
+        )
         arcade.draw_text("CONFIRME OU EDITE SEU NOME", 255, 135, arcade.color.BLACK, 16)
         arcade.draw_text(self.nome_jogador + "_", 340, 105, arcade.color.BLACK, 18)
         if self.resultado_salvo:
@@ -877,14 +1025,30 @@ class TelaGanhou(arcade.View):
         if self.resultado_salvo:
             return
         self.nome_jogador = self.nome_jogador.strip() or "Jogador"
-        salvar_resultado(self.nome_jogador, self.pontuacao, self.tempo)
+        salvar_resultado(
+            self.nome_jogador,
+            self.pontuacao,
+            self.tempo,
+            self.modo_jogo,
+            self.dificuldade,
+        )
         self.resultado_salvo = True
 
 
 class TelaFase(arcade.View):
-    def __init__(self, nome_jogador, fase, pontuacao=0, tempo=0, vidas=VIDAS_INICIAIS, personagens=("mulher",)):
+    def __init__(
+        self,
+        nome_jogador,
+        fase,
+        pontuacao=0,
+        tempo=0,
+        vidas=VIDAS_INICIAIS,
+        personagens=("mulher",),
+        dificuldade="medio",
+    ):
         super().__init__()
         self.nome_jogador = nome_jogador
+        self.dificuldade = dificuldade
         self.fase = fase
         self.pontuacao = pontuacao
         self.tempo = tempo
@@ -957,6 +1121,7 @@ class TelaFase(arcade.View):
                     tempo=self.tempo,
                     vidas=self.vidas_jogadores,
                     personagens=self.personagens,
+                    dificuldade=self.dificuldade,
                 )
             )
         elif key == arcade.key.ESCAPE:
@@ -996,7 +1161,14 @@ class TelaJogo(arcade.View):
                 self.mensagem = f"JOGADOR {indice_jogador + 1} ELIMINADO"
                 if not any(self.vidas_jogadores):
                     self.window.show_view(
-                        TelaGanhou(self.pontuacao, self.tempo, self.nome_jogador, venceu=False)
+                        TelaGanhou(
+                            self.pontuacao,
+                            self.tempo,
+                            self.nome_jogador,
+                            venceu=False,
+                            modo_jogo=self.modo_jogo,
+                            dificuldade=self.dificuldade,
+                        )
                     )
                     return True
 
@@ -1184,10 +1356,14 @@ class TelaJogo(arcade.View):
         tempo=0,
         vidas=VIDAS_INICIAIS,
         personagens=("mulher",),
+        dificuldade="medio",
     ):
         super().__init__()
         self.nome_jogador = nome_jogador
         self.personagens = tuple(personagens)[:2] or ("mulher",)
+        self.modo_jogo = "cooperativo" if len(self.personagens) == 2 else "solo"
+        self.dificuldade = dificuldade
+        self.multiplicador_dificuldade = MULTIPLICADORES_DIFICULDADE[dificuldade]
         self.fase = fase
         self.config_fase = FASES[fase]
         arcade.set_background_color(arcade.color.WHITE)
@@ -1219,7 +1395,9 @@ class TelaJogo(arcade.View):
         self.perseguidor_ativado = False
         self.mensagem = ""
         self.tempo_mensagem = 0
-        self.velocidade_ini = self.config_fase["velocidade_chao"]
+        self.velocidade_ini = (
+            self.config_fase["velocidade_chao"] * self.multiplicador_dificuldade
+        )
         self.cenario_sprite = arcade.Sprite(self.config_fase["cenario"])
         self.cenario_sprite.width = LARGURA
         self.cenario_sprite.height = ALTURA
@@ -1296,7 +1474,9 @@ class TelaJogo(arcade.View):
         )
         for indice in range(self.config_fase["ets"]):
             inimigo_especial = Inimigo_Especial(self.jogadores)
-            inimigo_especial.velocidade = self.config_fase["velocidade_et"]
+            inimigo_especial.velocidade = (
+                self.config_fase["velocidade_et"] * self.multiplicador_dificuldade
+            )
             inimigo_especial.center_x, inimigo_especial.center_y = posicoes_ets[indice]
             self.sprite_inimigo_especial.append(inimigo_especial)
         self.inimigo_especial = self.sprite_inimigo_especial[0]
@@ -1434,7 +1614,14 @@ class TelaJogo(arcade.View):
             f"J{indice + 1}: {vidas}"
             for indice, vidas in enumerate(self.vidas_jogadores)
         )
-        arcade.draw_text(f"{vidas_texto} | Moedas: {len(self.sprite_moedas)}",10,495,arcade.color.BLACK,14)
+        arcade.draw_text(
+            f"{vidas_texto} | Moedas: {len(self.sprite_moedas)}"
+            f" | Dificuldade: {NOMES_DIFICULDADE[self.dificuldade]}",
+            10,
+            495,
+            arcade.color.BLACK,
+            14,
+        )
         arcade.draw_text("ESC: MENU",700,510,arcade.color.BLACK,12)
 
         if self.tempo_mensagem > 0:
@@ -1490,6 +1677,7 @@ class TelaJogo(arcade.View):
                 velocidade = (
                     self.config_fase["velocidade_chao"]
                     * MULTIPLICADOR_VELOCIDADE_PERSEGUIDOR
+                    * self.multiplicador_dificuldade
                     * fator_lento
                 )
                 inimigo.change_x = velocidade if direcao > 0 else -velocidade if direcao < 0 else 0
@@ -1516,7 +1704,11 @@ class TelaJogo(arcade.View):
         self.sprite_inimigo.update(delta_time)
         fator_lento_ets = 0.55 if self.tempo_inimigos_lentos > 0 else 1.0
         for et in self.sprite_inimigo_especial:
-            et.velocidade = self.config_fase["velocidade_et"] * fator_lento_ets
+            et.velocidade = (
+                self.config_fase["velocidade_et"]
+                * self.multiplicador_dificuldade
+                * fator_lento_ets
+            )
         self.sprite_inimigo_especial.update(delta_time)
         self.sprite_moeda_especial.update(delta_time)
        
@@ -1678,6 +1870,7 @@ class TelaJogo(arcade.View):
                     self.tempo,
                     self.vidas_jogadores,
                     self.personagens,
+                    self.dificuldade,
                 )
             )
             return
